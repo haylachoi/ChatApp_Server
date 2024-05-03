@@ -42,7 +42,7 @@ namespace ChatApp_Server.Services
             return users.Adapt<IEnumerable<UserDto>>(); 
         }
 
-        public override async Task<Result<int>> InsertAsync(UserDto dto)
+        public override async Task<Result<UserDto>> InsertAsync(UserDto dto)
         {
             try
             {
@@ -56,7 +56,7 @@ namespace ChatApp_Server.Services
                 user.Password = dto.Password!.ToSHA512Hash(salt);
                 _repo.Insert(user);
                 await _repo.SaveAsync();
-                return Result.Ok(user.Id);
+                return Result.Ok(user.Adapt<UserDto>());
             }
             catch (Exception ex)
             {

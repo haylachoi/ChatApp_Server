@@ -22,7 +22,7 @@ namespace ChatApp_Server.Services
     public interface IAuthService
     {
         Task<Result<UserDto>> ValidateCredential(string email, string password);
-        Task<Result<int>> Register(string email, string password);
+        Task<Result<int>> Register(string email, string password, string fullName, string? imgUrl);
         Task<Result<JwtTokenDto>> CreateToken(UserDto user);
         Task<Result<JwtTokenDto>> RenewToken(JwtTokenDto jwtToken);
         Task<UserDto?> GetProfile(int id);
@@ -41,7 +41,7 @@ namespace ChatApp_Server.Services
         ): IAuthService
     {
         private readonly JwtSecurityTokenHandler _jwtHandler = new JwtSecurityTokenHandler();
-        public async Task<Result<int>> Register(string email, string password)
+        public async Task<Result<int>> Register(string email, string password, string fullName, string? imgUrl)
         {
             try
             {
@@ -49,6 +49,8 @@ namespace ChatApp_Server.Services
                 var user = new User
                 {
                     Email = email,
+                    Fullname = fullName,
+                    Avatar = imgUrl,
                     Salt = salt,
                     Password = password.ToSHA512Hash(salt)
                 };

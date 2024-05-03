@@ -7,7 +7,7 @@ namespace ChatApp_Server.Repositories
     public interface IPrivateMessageRepository:IBaseRepository<PrivateMessage, long>
     {
         Task<IEnumerable<PrivateMessage>> GetSeenAndUnseenAsync(int roomId, long? firstUnseenMessageId, int numberMessages);
-        Task<PrivateMessage?> UpdateEmotionMessage(long messageId, int receiverId, int? emotionId);
+        Task<PrivateMessage?> UpdateReactionMessage(long messageId, int receiverId, int? reactionId);
     }
     public class PrivateMessageRepository : BaseRepository<PrivateMessage, long>, IPrivateMessageRepository
     {
@@ -32,9 +32,9 @@ namespace ChatApp_Server.Repositories
                     .Take(numberMessages)).OrderBy(pm => pm.CreatedAt).ThenBy(pm => pm.Id).ToListAsync();
          }
 
-        public async Task<PrivateMessage?> UpdateEmotionMessage(long messageId, int receiverId, int? emotionId)
+        public async Task<PrivateMessage?> UpdateReactionMessage(long messageId, int receiverId, int? reactionId)
         {
-            var result = await _context.PrivateMessages.FromSql($"SELECT * FROM func_pm_update_emotion({messageId},{receiverId} ,{emotionId})")
+            var result = await _context.PrivateMessages.FromSql($"SELECT * FROM func_pm_update_reaction({messageId},{receiverId} ,{reactionId})")
                 .FirstOrDefaultAsync();
 
             return result;

@@ -26,6 +26,6 @@ public partial class PrivateMessageDto
     public bool? IsBlocked { get; set; }
     public int PrivateRoomId { get; set; }
 
-    public int? EmotionId { get; set; }
+    public int? ReactionId { get; set; }
 
 }

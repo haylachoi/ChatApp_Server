@@ -12,8 +12,10 @@ namespace ChatApp_Server.DTOs
 
         public long? FirstUnseenMessageId { get; set; }
         public long? LastUnseenMessageId { get; set; }
-
         public long UnseenMessageCount { get; set; }
+        public bool CanDisplayRoom { get; set; }
+        public bool CanShowNotification { get; set; }
+        public PrivateMessageDto? LastUnseenMessage { get; set; }
         public UserDto? User { get; set; }
     }
 }

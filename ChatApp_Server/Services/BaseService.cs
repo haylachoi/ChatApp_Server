@@ -14,7 +14,7 @@ namespace ChatApp_Server.Services
     {
         Task<IEnumerable<TDto>> GetAllAsync(TParam stockEntryParameter);
         Task<TDto?> GetByIdAsync(TId id);
-        Task<Result<TId>> InsertAsync(TDto category);
+        Task<Result<TDto>> InsertAsync(TDto category);
         Task<Result> UpdateAsync(TId id, JsonPatchDocument<TDto> patchDoc);
         Task<Result> DeleteAsync(TId id);
     }
@@ -38,19 +38,20 @@ namespace ChatApp_Server.Services
             return entity.Adapt<TDto>();
         }
 
-        public virtual async Task<Result<TId>> InsertAsync(TDto dto)
+        public virtual async Task<Result<TDto>> InsertAsync(TDto dto)
         {
             var entity = dto.Adapt<TEntity>();
             _repo.Insert(entity);
             try
             {
                 await _repo.SaveAsync();
-                var idObj = (entity.GetType()?.GetProperty("Id")?.GetValue(entity, null));
-                if (idObj != null)
-                {
-                    return Result.Ok((TId)idObj);
-                }
-                return Result.Ok();
+                //var idObj = (entity.GetType()?.GetProperty("Id")?.GetValue(entity, null));
+                //if (idObj != null)
+                //{
+                //    return Result.Ok((TId)idObj);
+                //}
+
+                return Result.Ok(entity.Adapt<TDto>());
             }
             catch (Exception ex)
             {

@@ -2,7 +2,7 @@
 
 namespace ChatApp_Server.DTOs
 {
-    public class EmotionDto
+    public class ReactionDto
     {
         public int Id { get; set; }
 

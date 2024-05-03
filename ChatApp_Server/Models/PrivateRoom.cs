@@ -22,9 +22,19 @@ public partial class PrivateRoom
 
     public long? FirstUnseenSmallerUserMessageId { get; set; }
 
+    public long? FirstMessageId { get; set; }
+
     [ForeignKey("BiggerUserId")]
     [InverseProperty("PrivateRoomBiggerUsers")]
     public virtual User BiggerUser { get; set; } = null!;
+
+    [ForeignKey("FirstMessageId")]
+    [InverseProperty("PrivateRoomFirstMessages")]
+    public virtual PrivateMessage? FirstMessage { get; set; }
+
+    [ForeignKey("LastMessageId")]
+    [InverseProperty("PrivateRoomLastMessages")]
+    public virtual PrivateMessage? LastMessage { get; set; }
 
     [InverseProperty("PrivateRoom")]
     public virtual ICollection<PrivateMessage> PrivateMessages { get; set; } = new List<PrivateMessage>();

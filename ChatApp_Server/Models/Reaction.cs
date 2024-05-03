@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ChatApp_Server.Models;
 
-public partial class Emotion
+public partial class Reaction
 {
     [Key]
     public int Id { get; set; }
@@ -14,6 +14,6 @@ public partial class Emotion
     [StringLength(20)]
     public string? Name { get; set; }
 
-    [InverseProperty("Emotion")]
+    [InverseProperty("Reaction")]
     public virtual ICollection<PrivateMessage> PrivateMessages { get; set; } = new List<PrivateMessage>();
 }

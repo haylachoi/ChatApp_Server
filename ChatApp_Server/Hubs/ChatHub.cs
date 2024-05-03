@@ -46,7 +46,7 @@ namespace SignalRChat.Hubs
                 return HubResponse.Fail("Mã định danh người dùng ko hợp lệ");
             }
 
-            var room = await privateRoomService.GetOneByUserAsync(userId, receiverId);
+            var room = await privateRoomService.GetOneByMemberAsync(userId, receiverId);
             if (room == null || room.Id == null)
             {
                 return HubResponse.Fail("Mã định danh người dùng ko hợp lệ");
@@ -65,28 +65,31 @@ namespace SignalRChat.Hubs
             {
                 return HubResponse.Fail(new { error = result.Errors[0].Message });
             }
-
-            var pm = await privateMessageService.GetByIdAsync(result.Value);
+            if (!result.Value.Id.HasValue)
+            {
+                return HubResponse.Fail("Ko lấy dc Id");
+            }
+            var pm = await privateMessageService.GetByIdAsync(result.Value.Id.Value);
 
             await Clients.Caller.SendAsync("ReceivePrivateMessage", pm);
             await Clients.User(receiverId.ToString()).SendAsync("ReceivePrivateMessage", pm);
             return HubResponse.Ok();
         }
-        public async Task<HubResponse> UpdateEmotionMessage(long messageId, int? emotionId)
+        public async Task<HubResponse> UpdateReactionMessage(long messageId, int? reactionId)
         {
             if (!int.TryParse(Context.UserIdentifier, out int userId))
             {
                 return HubResponse.Fail("Mã định danh người dùng ko hợp lệ");
             }
-            var result = await privateMessageService.UpdateEmotionMessage(messageId, userId, emotionId);
+            var result = await privateMessageService.UpdateReactionMessage(messageId, userId, reactionId);
             if (result.IsFailed)
             {
                 return HubResponse.Fail(result.Errors);
             }
             var pm = result.Value;
 
-            await Clients.Caller.SendAsync("UpdateEmotionMessage", pm);
-            await Clients.User(pm.SenderId.ToString()).SendAsync("UpdateEmotionMessage", pm);
+            await Clients.Caller.SendAsync("UpdateReactionMessage", pm);
+            await Clients.User(pm.SenderId.ToString()).SendAsync("UpdateReactionMessage", pm);
             return HubResponse.Ok(result.Value);
         }
         public async Task<HubResponse> UpdateSeenMessage(long messageId)
@@ -101,10 +104,11 @@ namespace SignalRChat.Hubs
             var message = result.Value;
             var senderId = message.SenderId;
             var pr = await privateRoomService.GetOneByRoomAsync(message.PrivateRoomId, message.ReceiverId);
-            if (pr != null && pr.LastUnseenMessageId.HasValue)
-            {
-                pr.LastUnseenMessage = await privateMessageService.GetByIdAsync(pr.LastUnseenMessageId.Value);
-            }
+            //if (pr != null && pr.LastUnseenMessageId.HasValue)
+            //{
+            //    pr.LastUnseenMessage = await privateMessageService.GetByIdAsync(pr.LastUnseenMessageId.Value);
+            //}
+           
             await Clients.User(senderId.ToString()).SendAsync("UpdateSeenMessage", message);
             await Clients.Caller.SendAsync("UpdateSeenMessage", message, pr);
             return HubResponse.Ok();

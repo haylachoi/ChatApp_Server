@@ -16,7 +16,7 @@ namespace ChatApp_Server.Services
         Task<IEnumerable<PrivateMessageDto>> GetPreviousMessageAsync(int roomId, long messageId, int? numberMessages);
         Task<IEnumerable<PrivateMessageDto>> GetNextMessageAsync(int roomId, long messageId, int? numberMessages);
         Task<IEnumerable<PrivateMessageDto>> GetSeenAndUnseenAsync(int roomId, long? firstUnseenMessageId, int numberMessages = 10);
-        Task<Result<PrivateMessageDto>> UpdateEmotionMessage(long messageId, int receiverId, int? emotionId);
+        Task<Result<PrivateMessageDto>> UpdateReactionMessage(long messageId, int receiverId, int? reactionId);
 
 
     }
@@ -104,11 +104,11 @@ namespace ChatApp_Server.Services
 
     
 
-        async Task<Result<PrivateMessageDto>> IPrivateMessageService.UpdateEmotionMessage(long messageId, int receiverId, int? emotionId)
+        public async Task<Result<PrivateMessageDto>> UpdateReactionMessage(long messageId, int receiverId, int? reactionId)
         {
             try
             {
-                var pm = await _repo.UpdateEmotionMessage(messageId, receiverId, emotionId);
+                var pm = await _repo.UpdateReactionMessage(messageId, receiverId, reactionId);
                 if (pm == null)
                 {
                     return Result.Fail("Người dùng không thể gửi biểu cảm ở tín nhắn này");

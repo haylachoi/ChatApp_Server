@@ -22,6 +22,20 @@ public partial class PrivateRoomInfo
 
     public long? LastUnseenMessageId { get; set; }
 
+    [Column("canDisplayRoom")]
+    public bool CanDisplayRoom { get; set; }
+
+    [Column("canShowNofitication")]
+    public bool CanShowNofitication { get; set; }
+
+    [ForeignKey("FirstUnseenMessageId")]
+    [InverseProperty("PrivateRoomInfoFirstUnseenMessages")]
+    public virtual PrivateMessage? FirstUnseenMessage { get; set; }
+
+    [ForeignKey("LastUnseenMessageId")]
+    [InverseProperty("PrivateRoomInfoLastUnseenMessages")]
+    public virtual PrivateMessage? LastUnseenMessage { get; set; }
+
     [ForeignKey("PrivateRoomId")]
     [InverseProperty("PrivateRoomInfos")]
     public virtual PrivateRoom PrivateRoom { get; set; } = null!;

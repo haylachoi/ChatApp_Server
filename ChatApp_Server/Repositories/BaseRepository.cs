@@ -52,10 +52,6 @@ namespace ChatApp_Server.Repositories
                 query = includes(query);
             }
 
-            //if (includes != null)
-            //{
-            //    query = includes.Aggregate(query, (acc, next) => acc.Include(next));
-            //}
 
             if (orderBy != null)
             {

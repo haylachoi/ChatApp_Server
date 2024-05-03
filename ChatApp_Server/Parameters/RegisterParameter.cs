@@ -14,6 +14,8 @@ namespace ChatApp_Server.Parameters
         [Required(AllowEmptyStrings = false, ErrorMessage = "Tên không được để trống")]
         public string Fullname { get; set; } = null!;
 
+        public IFormFile? File { get; set; }
+
 
     }
 }

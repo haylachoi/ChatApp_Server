@@ -28,15 +28,27 @@ public partial class PrivateMessage
 
     public int PrivateRoomId { get; set; }
 
-    public int? EmotionId { get; set; }
-
-    [ForeignKey("EmotionId")]
-    [InverseProperty("PrivateMessages")]
-    public virtual Emotion? Emotion { get; set; }
+    public int? ReactionId { get; set; }
 
     [ForeignKey("PrivateRoomId")]
     [InverseProperty("PrivateMessages")]
     public virtual PrivateRoom PrivateRoom { get; set; } = null!;
+
+    [InverseProperty("FirstMessage")]
+    public virtual ICollection<PrivateRoom> PrivateRoomFirstMessages { get; set; } = new List<PrivateRoom>();
+
+    [InverseProperty("FirstUnseenMessage")]
+    public virtual ICollection<PrivateRoomInfo> PrivateRoomInfoFirstUnseenMessages { get; set; } = new List<PrivateRoomInfo>();
+
+    [InverseProperty("LastUnseenMessage")]
+    public virtual ICollection<PrivateRoomInfo> PrivateRoomInfoLastUnseenMessages { get; set; } = new List<PrivateRoomInfo>();
+
+    [InverseProperty("LastMessage")]
+    public virtual ICollection<PrivateRoom> PrivateRoomLastMessages { get; set; } = new List<PrivateRoom>();
+
+    [ForeignKey("ReactionId")]
+    [InverseProperty("PrivateMessages")]
+    public virtual Reaction? Reaction { get; set; }
 
     [ForeignKey("ReceiverId")]
     [InverseProperty("PrivateMessageReceivers")]

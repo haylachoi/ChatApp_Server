@@ -11,12 +11,12 @@ namespace ChatApp_Server.Hubs
     public class UserHub: Hub
     {
         private readonly IUserService userService;
-        private readonly IEmotionService emotionService;
+        private readonly IReactionService reactionService;
 
-        public UserHub(IUserService userService, IEmotionService emotionService)
+        public UserHub(IUserService userService, IReactionService reactionService)
         {
             this.userService = userService;
-            this.emotionService = emotionService;
+            this.reactionService = reactionService;
         }
 
         public async Task<HubResponse> SearchUser(string searchTerm)
@@ -33,10 +33,10 @@ namespace ChatApp_Server.Hubs
             return HubResponse.Ok(users);
         }
 
-        public async Task<HubResponse> GetEmotions()
+        public async Task<HubResponse> GetReactions()
         {
-            var emotions = await emotionService.GetAllAsync(new EmotionParameter());
-            return HubResponse.Ok(emotions);
+            var reactions = await reactionService.GetAllAsync(new ReactionParameter());
+            return HubResponse.Ok(reactions);
         }
         public override async Task OnConnectedAsync()
         {

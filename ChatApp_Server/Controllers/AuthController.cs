@@ -12,12 +12,22 @@ namespace WebApplication1.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class AuthController(IAuthService authService): ControllerBase
+    public class AuthController(IAuthService authService, IFireBaseCloudService fireBaseCloudService): ControllerBase
     {
         [HttpPost("register")]
         public async Task<IActionResult> Register(RegisterParameter param)
         {
-            var result = await authService.Register(param.Email, param.Password);
+            string? avatarUrl = null;
+            if (param.File != null)
+            {
+                var urlResult = await fireBaseCloudService.UploadFile(param.File.FileName, param.File);
+                if (urlResult != null)
+                {
+                    avatarUrl = urlResult.Value;
+                }
+            }
+            
+            var result = await authService.Register(param.Email, param.Password, param.Fullname, avatarUrl);
             return result.ToActionResult();
         }
         [HttpPost("login")]
@@ -55,7 +65,7 @@ namespace WebApplication1.Controllers
         //[HttpGet("test")]
         //public async Task<IActionResult> Test()
         //{
-        //    var r =  await privateMessageService.UpdateEmotionMessage(1278, 5, 2);
+        //    var r =  await privateMessageService.UpdateReactionMessage(1278, 5, 2);
         //    return Ok(r.Value);
         //}
     }

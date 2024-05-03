@@ -13,10 +13,10 @@ namespace ChatApp_Server.Services
 {
     public interface IPrivateRoomService: IBaseService<IPrivateRoomRepository, PrivateRoom, PrivateRoomParameter, int, PrivateRoomDto>
     {
-        Task<PrivateRoomDto?> GetOneByRoomAsync(int id, int? userId);
-        Task<PrivateRoomDto?> GetOneByUserAsync(int userId1, int userId2);
+        Task<PrivateRoomDto?> GetOneByRoomAsync(int roomId, int? userId);
+        Task<PrivateRoomDto?> GetOneByMemberAsync(int userId1, int userId2);
         Task<PrivateMessageDto> GetLastUnseenMessage(int roomId, int userId);
-        //Task<PrivateRoomDto?> GetOneAsync(int biggerUserId, int smallerUserId);
+        
 
     }
     public class PrivateRoomService : BaseService<IPrivateRoomRepository, PrivateRoom, PrivateRoomParameter, int, PrivateRoomDto>, IPrivateRoomService
@@ -32,14 +32,9 @@ namespace ChatApp_Server.Services
             var userId = parameter.UserId;
             var numberMessage = parameter.NumberMessage;
             List<Expression<Func<PrivateRoom, bool>>> filters = new List<Expression<Func<PrivateRoom, bool>>>();
-            Func<IQueryable<PrivateRoom>, IIncludableQueryable<PrivateRoom, object>>? includes = query => query
-                //.Include(pr => pr.BiggerUser)
-                //.Include(pr => pr.SmallerUser)
+            Func<IQueryable<PrivateRoom>, IIncludableQueryable<PrivateRoom, object>>? includes = query => query             
                 .Include(pm => pm.PrivateRoomInfos).ThenInclude(pri => pri.User);
-            //.Include(pr => pr.PrivateMessages.OrderByDescending(pm => pm.CreatedAt).Take(numberMessage))
-            ;
-                
-            
+        
             if (userId != null)
             {
                 filters.Add(pm => pm.SmallerUserId == userId || pm.BiggerUserId == userId);
@@ -59,30 +54,21 @@ namespace ChatApp_Server.Services
             var prs = await _repo.GetAllAsync(filters, includes: includes);
             var prDtos = prs.Adapt<IEnumerable<PrivateRoomDto>>().ToArray();
           
-            foreach (var prDto in prDtos)
-            {
-                //if (prDto.SmallerUser != null && prDto.SmallerUser.Id != userId)
-                //{
-                //    prDto.Friend = prDto.SmallerUser;
-                //    prDto.FirstUnseenMessageId = prDto.FirstUnseenBiggerUserMessageId;
-                //}
-                //else
-                //{
-                //    prDto.Friend = prDto.BiggerUser;
-                //    prDto.FirstUnseenMessageId = prDto.FirstUnseenSmallerUserMessageId;
-                //}
+            //foreach (var prDto in prDtos)
+            //{
+             
+            //    prDto.Friend = prDto.PrivateRoomInfos?.Single(pri => pri.UserId != userId).User;
+            //    var user_pr_info = prDto.PrivateRoomInfos?.Single(pri => pri.UserId == userId);
+            //    if (user_pr_info != null)
+            //    {
+            //        prDto.FirstUnseenMessageId = user_pr_info?.FirstUnseenMessageId;
+            //        prDto.LastUnseenMessageId = user_pr_info?.LastUnseenMessageId;
+            //        prDto.UnseenMessageCount = user_pr_info?.UnseenMessageCount ?? 0;
+            //        prDto.CanRoomDisplay = user_pr_info!.CanDisplayRoom;
 
-                //prDto.SmallerUser = null;
-                //prDto.BiggerUser = null;
-
-                prDto.Friend = prDto.PrivateRoomInfos?.Single(pri => pri.UserId != userId).User;
-                var user_pr_info = prDto.PrivateRoomInfos?.Single(pri => pri.UserId == userId);
-                prDto.FirstUnseenMessageId = user_pr_info?.FirstUnseenMessageId;
-                prDto.LastUnseenMessageId = user_pr_info?.LastUnseenMessageId;
-                prDto.UnseenMessageCount = user_pr_info?.UnseenMessageCount ?? 0;
-
-                prDto.PrivateMessages = prDto?.PrivateMessages?.OrderBy(pm => pm.CreatedAt).ToArray();
-            }           
+            //    }
+            //    prDto.PrivateMessages = prDto?.PrivateMessages?.OrderBy(pm => pm.CreatedAt).ToArray();
+            //}           
             return prDtos;
         }
 
@@ -95,46 +81,66 @@ namespace ChatApp_Server.Services
 
         public async Task<PrivateRoomDto?> GetOneByRoomAsync(int roomId, int? userId = null)
         {
-            Func<IQueryable<PrivateRoom>, IIncludableQueryable<PrivateRoom, object>> includes = query => query
-                //.Include(pm => pm.BiggerUser)
-                //.Include(pm => pm.SmallerUser)
+            Func<IQueryable<PrivateRoom>, IIncludableQueryable<PrivateRoom, object>> includes = query => query           
                 .Include(pm => pm.PrivateRoomInfos).ThenInclude(pri => pri.User);
               
                 //.Include(pm => pm.PrivateMessages);
-            var prs = await _repo.GetAllAsync([pr => pr.Id == roomId], includes: includes);
+            var prs = await _repo.GetAllAsync([pr => pr.Id == roomId && pr.PrivateRoomInfos.Any(info => info.UserId == userId)], includes: includes);
             var pr = prs.FirstOrDefault();
-            var prDto = pr.Adapt<PrivateRoomDto>();
-            //if (prDto.SmallerUser != null && prDto.SmallerUser.Id != roomId)
-            //{
-            //    prDto.Friend = prDto.SmallerUser;
-            //} else
-            //{
-            //    prDto.Friend = prDto.BiggerUser;
-            //}
-
-            //prDto.SmallerUser = null;
-            //prDto.BiggerUser = null;
+            var prDto = pr.Adapt<PrivateRoomDto>();          
             
-            if (userId != null && prDto != null)
-            {
-                prDto.Friend = prDto.PrivateRoomInfos?.Single(pri => pri.UserId != userId).User;
-                var user_pr_info = prDto.PrivateRoomInfos?.Single(pri => pri.UserId == userId);
-                prDto.FirstUnseenMessageId = user_pr_info?.FirstUnseenMessageId;
-                prDto.LastUnseenMessageId = user_pr_info?.LastUnseenMessageId;
-                prDto.UnseenMessageCount = user_pr_info?.UnseenMessageCount ?? 0;
+            //if (userId != null && prDto != null)
+            //{
+            //    prDto.Friend = prDto.PrivateRoomInfos?.Single(pri => pri.UserId != userId).User;
+            //    var user_pr_info = prDto.PrivateRoomInfos?.Single(pri => pri.UserId == userId);
+            //    prDto.FirstUnseenMessageId = user_pr_info?.FirstUnseenMessageId;
+            //    prDto.LastUnseenMessageId = user_pr_info?.LastUnseenMessageId;
+            //    prDto.UnseenMessageCount = user_pr_info?.UnseenMessageCount ?? 0;
 
-            }
+            //}
             return prDto;
         }
 
-        public async Task<PrivateRoomDto?> GetOneByUserAsync(int userId1, int userId2)
+        public async Task<PrivateRoomDto?> GetOneByMemberAsync(int userId1, int userId2)
         {
             var biggerUserId = int.Max(userId1, userId2);
             var smallerUserId = int.Min(userId1, userId2);
 
-            var prs = await _repo.GetAllAsync([pr => pr.BiggerUserId == biggerUserId && pr.SmallerUserId == smallerUserId]);
+            //var prs = await _repo.GetAllAsync([pr => pr.BiggerUserId == biggerUserId && pr.SmallerUserId == smallerUserId]);
+            var prs = await _repo.GetAllAsync([pr => pr.PrivateRoomInfos.All(info => info.UserId == userId1 || info.UserId == userId2)]);
             var pr = prs.FirstOrDefault();
             return pr.Adapt<PrivateRoomDto>();
+        }
+
+        public Result<RoomDto> ConvertToRoomDto(PrivateRoomDto pr, int currentUserId)
+        {
+            if (pr.PrivateRoomInfos == null || pr.PrivateRoomInfos.Count() == 0)
+            {
+                return Result.Fail("Lack of info");
+            }
+            var currentUserInfo = pr.PrivateRoomInfos.FirstOrDefault(pri => pri.UserId == currentUserId);
+            if (currentUserInfo == null)
+            {
+                return Result.Fail("User is not room member ");
+            }
+            return new RoomDto
+            {
+                Id = pr.Id,
+                IsGroup = false,
+                FirstMessageId = pr.FirstMessageId,
+                LastMessageId = pr.LastMessageId,
+                CurrentMemberInfo = new RoomMemberInfo
+                {
+                    MemberId = currentUserInfo.UserId,
+                    FullName = currentUserInfo.User?.Fullname,
+                    FirstUnseenMessageId = currentUserInfo.FirstUnseenMessageId,
+                    LastUnseenMessageId = currentUserInfo.LastUnseenMessageId,
+                    UnseenMessageCount = currentUserInfo.UnseenMessageCount,
+                    CanDisplayRoom = currentUserInfo.CanDisplayRoom,
+                    CanShowNotification = currentUserInfo.CanShowNotification,
+                    LastUnseenMessage = currentUserInfo.LastUnseenMessage
+                }
+            };
         }
 
     }
