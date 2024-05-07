@@ -6,15 +6,15 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ChatApp_Server.Models;
 
-[Index("UserId", "PrivateRoomId", Name = "unq_user_room", IsUnique = true)]
-public partial class PrivateRoomInfo
+[Index("UserId", "RoomId", Name = "unq_user_room", IsUnique = true)]
+public partial class RoomMemberInfo
 {
     [Key]
     public int Id { get; set; }
 
     public int UserId { get; set; }
 
-    public int PrivateRoomId { get; set; }
+    public int RoomId { get; set; }
 
     public long? FirstUnseenMessageId { get; set; }
 
@@ -29,18 +29,18 @@ public partial class PrivateRoomInfo
     public bool CanShowNofitication { get; set; }
 
     [ForeignKey("FirstUnseenMessageId")]
-    [InverseProperty("PrivateRoomInfoFirstUnseenMessages")]
-    public virtual PrivateMessage? FirstUnseenMessage { get; set; }
+    [InverseProperty("RoomMemberInfoFirstUnseenMessages")]
+    public virtual Message? FirstUnseenMessage { get; set; }
 
     [ForeignKey("LastUnseenMessageId")]
-    [InverseProperty("PrivateRoomInfoLastUnseenMessages")]
-    public virtual PrivateMessage? LastUnseenMessage { get; set; }
+    [InverseProperty("RoomMemberInfoLastUnseenMessages")]
+    public virtual Message? LastUnseenMessage { get; set; }
 
-    [ForeignKey("PrivateRoomId")]
-    [InverseProperty("PrivateRoomInfos")]
-    public virtual PrivateRoom PrivateRoom { get; set; } = null!;
+    [ForeignKey("RoomId")]
+    [InverseProperty("RoomMemberInfos")]
+    public virtual Room Room { get; set; } = null!;
 
     [ForeignKey("UserId")]
-    [InverseProperty("PrivateRoomInfos")]
+    [InverseProperty("RoomMemberInfos")]
     public virtual User User { get; set; } = null!;
 }

@@ -18,12 +18,6 @@ public partial class Group
 
     public int GroupOwnerId { get; set; }
 
-    [InverseProperty("Group")]
-    public virtual ICollection<GroupMember> GroupMembers { get; set; } = new List<GroupMember>();
-
-    [InverseProperty("Group")]
-    public virtual ICollection<GroupMessage> GroupMessages { get; set; } = new List<GroupMessage>();
-
     [ForeignKey("GroupOwnerId")]
     [InverseProperty("Groups")]
     public virtual User GroupOwner { get; set; } = null!;

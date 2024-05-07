@@ -14,6 +14,7 @@ using ChatApp_Server.Configs;
 using ChatApp_Server.Hubs;
 using Google.Cloud.Storage.V1;
 using Microsoft.Extensions.Options;
+using Microsoft.AspNetCore.SignalR;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -39,6 +40,8 @@ builder.Services.AddSingleton(FirebaseApp.Create());
 builder.Services.AddSingleton(FirestoreDb.Create(firebaseProjectName));
 builder.Services.AddSingleton(StorageClient.Create());
 builder.Services.AddSingleton(service => service.GetRequiredService<IOptions<AppSettings>>().Value);
+builder.Services.AddSingleton<ConnectionMapping<string>>();
+
 //builder.Services.AddSingleton(new FirebaseAuthClient(new FirebaseAuthConfig
 //{
 //    ApiKey = "AIzaSyDc8JqhrToDLv-8H8aQFdaZo2PqRiuwyug",
@@ -50,7 +53,7 @@ builder.Services.AddSingleton(service => service.GetRequiredService<IOptions<App
 //    }
 //}));
 builder.Services.AddSignalR().AddNewtonsoftJsonProtocol(opt =>
-{
+{   
     opt.PayloadSerializerSettings.NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore;
 });
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -106,7 +109,7 @@ app.UseAuthorization();
 app.MapControllers();
 app.MapHub<ChatHub>("/hub/chat");
 app.MapHub<UserHub>("/hub/user");
-app.MapHub<PrivateRoomHub>("/hub/privateRoom");
+app.MapHub<RoomHub>("/hub/room");
 
 app.UseProblemDetails();
 app.Run();

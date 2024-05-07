@@ -15,5 +15,5 @@ public partial class Reaction
     public string? Name { get; set; }
 
     [InverseProperty("Reaction")]
-    public virtual ICollection<PrivateMessage> PrivateMessages { get; set; } = new List<PrivateMessage>();
+    public virtual ICollection<MessageDetail> MessageDetails { get; set; } = new List<MessageDetail>();
 }

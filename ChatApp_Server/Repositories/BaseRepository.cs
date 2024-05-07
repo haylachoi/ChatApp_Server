@@ -13,10 +13,10 @@ namespace ChatApp_Server.Repositories
 
         Task<IEnumerable<TEntity>> GetAllAsync(IEnumerable<Expression<Func<TEntity, bool>>> filters = null!,
            Func<IQueryable<TEntity>, IOrderedQueryable<TEntity>> orderBy = null!,
-           Func<IQueryable<TEntity>, IIncludableQueryable<TEntity, object>> includes = null!,
+           Func<IQueryable<TEntity>, IIncludableQueryable<TEntity, object?>> includes = null!,
            int? skip = null,
            int? take = null);
-        Task<TEntity?> GetOne(IEnumerable<Expression<Func<TEntity, bool>>> filters = null!, IEnumerable<string> includes = null!);
+        Task<TEntity?> GetOne(IEnumerable<Expression<Func<TEntity, bool>>> filters = null!, Func<IQueryable<TEntity>, IIncludableQueryable<TEntity, object?>>? includes = null);
 
         Task<TEntity?> GetByIdAsync(TId id);
         void Insert(TEntity entity);
@@ -37,7 +37,7 @@ namespace ChatApp_Server.Repositories
         
         public virtual async Task<IEnumerable<TEntity>> GetAllAsync(IEnumerable<Expression<Func<TEntity, bool>>> filters = null!,
            Func<IQueryable<TEntity>, IOrderedQueryable<TEntity>>? orderBy = null,
-           Func<IQueryable<TEntity>, IIncludableQueryable<TEntity, object>>? includes = null,
+           Func<IQueryable<TEntity>, IIncludableQueryable<TEntity, object?>>? includes = null,
            int? skip = null,
            int? take = null)
         {
@@ -68,7 +68,7 @@ namespace ChatApp_Server.Repositories
 
             return await query.AsNoTracking().ToListAsync();
         }
-        public virtual async Task<TEntity?> GetOne(IEnumerable<Expression<Func<TEntity, bool>>> filters = null!, IEnumerable<string> includes = null!)
+        public virtual async Task<TEntity?> GetOne(IEnumerable<Expression<Func<TEntity, bool>>> filters = null!, Func<IQueryable<TEntity>, IIncludableQueryable<TEntity, object?>>? includes = null)
         {
             IQueryable<TEntity> query = _context.Set<TEntity>();
             if (filters != null && filters.Count() > 0)
@@ -77,7 +77,7 @@ namespace ChatApp_Server.Repositories
             }
             if (includes != null)
             {
-                query = includes.Aggregate(query, (acc, next) => acc.Include(next));
+                query = includes(query);
             }
             return await query.AsNoTracking().FirstOrDefaultAsync();
         }

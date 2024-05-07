@@ -8,6 +8,8 @@ namespace ChatApp_Server.DTOs
         public int? Id { get; set; }
         public string Email { get; set; } = string.Empty;
         public string? Fullname { get; set; } 
+
+        // todo: check if password is still serialize
         public string? Password { get; set; } 
 
         public string? Avatar { get; set; }

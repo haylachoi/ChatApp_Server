@@ -43,33 +43,18 @@ public partial class User
     [InverseProperty("Sender")]
     public virtual ICollection<Friendship> FriendshipSenders { get; set; } = new List<Friendship>();
 
-    [InverseProperty("Member")]
-    public virtual ICollection<GroupMember> GroupMembers { get; set; } = new List<GroupMember>();
-
-    [InverseProperty("Sender")]
-    public virtual ICollection<GroupMessage> GroupMessages { get; set; } = new List<GroupMessage>();
-
     [InverseProperty("GroupOwner")]
     public virtual ICollection<Group> Groups { get; set; } = new List<Group>();
 
-    [InverseProperty("Receiver")]
-    public virtual ICollection<PrivateMessage> PrivateMessageReceivers { get; set; } = new List<PrivateMessage>();
+    [InverseProperty("User")]
+    public virtual ICollection<MessageDetail> MessageDetails { get; set; } = new List<MessageDetail>();
 
     [InverseProperty("Sender")]
-    public virtual ICollection<PrivateMessage> PrivateMessageSenders { get; set; } = new List<PrivateMessage>();
-
-    [InverseProperty("BiggerUser")]
-    public virtual ICollection<PrivateRoom> PrivateRoomBiggerUsers { get; set; } = new List<PrivateRoom>();
-
-    [InverseProperty("User")]
-    public virtual ICollection<PrivateRoomInfo> PrivateRoomInfos { get; set; } = new List<PrivateRoomInfo>();
-
-    [InverseProperty("SmallerUser")]
-    public virtual ICollection<PrivateRoom> PrivateRoomSmallerUsers { get; set; } = new List<PrivateRoom>();
-
-    [InverseProperty("Member")]
-    public virtual ICollection<ReadedMessage> ReadedMessages { get; set; } = new List<ReadedMessage>();
+    public virtual ICollection<Message> Messages { get; set; } = new List<Message>();
 
     [InverseProperty("User")]
     public virtual ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
+
+    [InverseProperty("User")]
+    public virtual ICollection<RoomMemberInfo> RoomMemberInfos { get; set; } = new List<RoomMemberInfo>();
 }

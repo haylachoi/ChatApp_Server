@@ -45,12 +45,6 @@ namespace ChatApp_Server.Services
             try
             {
                 await _repo.SaveAsync();
-                //var idObj = (entity.GetType()?.GetProperty("Id")?.GetValue(entity, null));
-                //if (idObj != null)
-                //{
-                //    return Result.Ok((TId)idObj);
-                //}
-
                 return Result.Ok(entity.Adapt<TDto>());
             }
             catch (Exception ex)

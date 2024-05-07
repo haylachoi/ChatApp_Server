@@ -16,8 +16,8 @@ namespace ChatApp_Server.Controllers
     [ApiController]
     [Authorize]
     public class ChatController(IFireBaseCloudService fireBaseCloudService, 
-        IPrivateRoomService privateRoomService,
-        IPrivateMessageService privateMessageService, 
+        IRoomService roomService,
+        IMessageService messageService, 
         IHubContext<ChatHub> hubContext) : ControllerBase
     {
         [HttpPost]
@@ -29,7 +29,7 @@ namespace ChatApp_Server.Controllers
             }
             var files = param.Files;
             var roomId = param.RoomId;
-            var room = await privateRoomService.GetByIdAsync(roomId);
+            var room = await roomService.GetOneAsync(roomId);
             if (room == null)
             {
                 return BadRequest();
@@ -39,24 +39,7 @@ namespace ChatApp_Server.Controllers
             {          
                 uploadQueue.Enqueue(fireBaseCloudService.UploadFile(file.Name, file));
             }
-            
-            var receiverId = room.PrivateRoomInfos?.FirstOrDefault(info => info.UserId != userId)?.UserId;
-            if (receiverId == null)
-            {
-                var problemDetails = new ProblemDetails
-                {
-                    Status = (int)HttpStatusCode.InternalServerError,
-                    Title = "Internal Server Error",
-                    Detail = "An error occurred while processing the request."
-                };
-                return new ObjectResult(problemDetails)
-                {
-                    StatusCode = (int)HttpStatusCode.InternalServerError
-                };
-            }
-
-
-            //var receiverId = userId == room.BiggerUserId ? room.SmallerUserId : room.BiggerUserId;
+                     
 
             while (uploadQueue.Count > 0)
             {
@@ -65,18 +48,17 @@ namespace ChatApp_Server.Controllers
                 {
                     continue;
                 }
-                await privateMessageService.InsertAsync(new PrivateMessageDto
+                await messageService.InsertAsync(new MessageDto
                 {
                     SenderId = userId,
-                    PrivateRoomId = roomId,
-                    Content = urlResult.Value,
-                    ReceiverId = receiverId.Value,
+                    RoomId = roomId,
+                    Content = urlResult.Value,               
                     IsImage = true,
                 }).ContinueWith(pm =>
                 {
                     if (pm.Result != null)
                     {
-                        hubContext.Clients.Users([userId.ToString(), receiverId.Value.ToString()]).SendAsync("ReceivePrivateMessage", pm.Result.Value);
+                        hubContext.Clients.Group(roomId.ToString()).SendAsync("ReceiveMessage", pm.Result.Value);
                     }
                 });
             }
