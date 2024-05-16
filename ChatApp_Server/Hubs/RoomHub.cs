@@ -1,10 +1,6 @@
-﻿using ChatApp_Server.DTOs;
-using ChatApp_Server.Helper;
-using ChatApp_Server.Models;
-using ChatApp_Server.Parameters;
+﻿using ChatApp_Server.Helper;
 using ChatApp_Server.Params;
 using ChatApp_Server.Services;
-using Mapster;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using SignalRChat.Hubs;
@@ -56,9 +52,7 @@ namespace ChatApp_Server.Hubs
             }
 
             var room = result.Value;
-            //
-
-
+           
             _ = Clients.Caller.SendAsync("CreateRoom", room);
             _ = Clients.User(friendId.ToString()).SendAsync("CreateRoom", room);
             return HubResponse.Ok();
@@ -71,6 +65,7 @@ namespace ChatApp_Server.Hubs
                 GroupId = groupId,
                 UserId = userId
             });
+
             if (result.IsFailed)
             {
                 return HubResponse.Fail(result.Errors);
@@ -85,6 +80,7 @@ namespace ChatApp_Server.Hubs
                 GroupId = groupId,
                 UserId = userId
             });
+
             if (result.IsFailed)
             {
                 return HubResponse.Fail(result.Errors);
@@ -92,6 +88,7 @@ namespace ChatApp_Server.Hubs
             _ = chatHubContext.Clients.Group(groupId.ToString()).SendAsync("RemoveGroupMember", result.Value);
             return HubResponse.Ok();
         }
+       
         public async Task<HubResponse> GetRooms()
         {
             var userId = int.Parse(Context.UserIdentifier!);

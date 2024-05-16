@@ -1,11 +1,9 @@
 ﻿using ChatApp_Server.DTOs;
 using ChatApp_Server.Helper;
 using ChatApp_Server.Models;
-using ChatApp_Server.Parameters;
 using ChatApp_Server.Params;
 using ChatApp_Server.Repositories;
 using FluentResults;
-using Google.Apis.Upload;
 using Mapster;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Query;
@@ -19,6 +17,7 @@ namespace ChatApp_Server.Services
         Task<Result<RoomDto>> CreateRoomAsync(RoomParam param);
         Task<RoomDto?> GetOneAsync(int roomId);
         Task<RoomDto?> GetOneByRoomAsync(int roomId, int? userId);    
+        Task<IEnumerable<RoomMemberInfoDto>> GetAllRoomOfMembersAsync(int roomId);
         Task<MessageDto> GetLastUnseenMessage(int roomId, int userId);
         Task<Result> UpdateCanDisplayRoom(int roomId, int userId, bool canDisplay);
         
@@ -35,10 +34,9 @@ namespace ChatApp_Server.Services
             this.roomMemberInfoRepository = roomMemberInfoRepository;
         }
 
-        public async Task<IEnumerable<RoomDto>> GetAllAsync(RoomParameter parameter)
+        public async Task<IEnumerable<RoomDto>> GetAllAsync()
         {        
-            var userId = parameter.UserId;
-            var numberMessage = parameter.NumberMessage;
+         
             List<Expression<Func<Room, bool>>> filters = new List<Expression<Func<Room, bool>>>();
             Func<IQueryable<Room>, IIncludableQueryable<Room, object>>? includes = query => query
                 .Include(r => r.RoomMemberInfos).ThenInclude(info => info.LastUnseenMessage)
@@ -105,6 +103,12 @@ namespace ChatApp_Server.Services
                 await roomMemberInfoRepository.SaveAsync();
                 return Result.Ok();
             });
+        }
+
+        public async Task<IEnumerable<RoomMemberInfoDto>> GetAllRoomOfMembersAsync(int userId)
+        {
+            var members = await roomMemberInfoRepository.GetAllAsync([rm => rm.UserId == userId]);
+            return members.Adapt<IEnumerable<RoomMemberInfoDto>>();
         }
     }
 }

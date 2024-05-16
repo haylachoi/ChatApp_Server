@@ -1,18 +1,17 @@
 ﻿using ChatApp_Server.DTOs;
 using ChatApp_Server.Helper;
 using ChatApp_Server.Models;
-using ChatApp_Server.Parameters;
+using ChatApp_Server.Params;
 using ChatApp_Server.Repositories;
 using FluentResults;
-using Google.Apis.Upload;
 using Mapster;
-using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 
 namespace ChatApp_Server.Services
 {
-    public interface IMessageService: IBaseService<IMessageRepository, Message, MessageParameter,long, MessageDto>
+    public interface IMessageService
     {
+        Task<Result<MessageDto>> CreateMessageAsync(MessageParam param);
         Task<Result<MessageDto>> GetOneAsync(long messageId);
         Task<Result<MessageDto>> GetOneIncludeRoomInfoAsync(long messageId, int userId);
         Task<Result<MessageDto>> GetFirstMessageAsync(int roomId);
@@ -20,49 +19,45 @@ namespace ChatApp_Server.Services
         Task<IEnumerable<MessageDto>> GetPreviousMessageAsync(int roomId, long messageId, int? numberMessages);
         Task<IEnumerable<MessageDto>> GetNextMessageAsync(int roomId, long messageId, int? numberMessages);
         Task<IEnumerable<MessageDto>> GetSeenAndUnseenAsync(int roomId, long? firstUnseenMessageId, int numberMessages = 10);
-
-        //Task<Result<MessageDto>> UpdateReactionMessage(long messageId, int receiverId, int? reactionId);
+        Task<Result<MessageDetailDto>> AddOrUpdateReaction(long mesageId, int userId, int? reactionId);
+        Task<Result<MessageDetailDto>> AddOrUpdateIsReaded(long mesageId, int userId);
+    
 
 
     }
-    public class MessageService : BaseService<IMessageRepository, Message, MessageParameter, long, MessageDto>, IMessageService
-    {
-        public MessageService(IMessageRepository repo) : base(repo)
+    public class MessageService(IMessageRepository messageRepository, IMessageDetailRepository messageDetailRepository): IMessageService
+    {     
+        public async Task<IEnumerable<MessageDto>> GetAllAsync(int senderId)
         {
-        }
-
-        public override async Task<IEnumerable<MessageDto>> GetAllAsync(MessageParameter parameter)
-        {
-            List<Expression<Func<Message, bool>>> filters = new List<Expression<Func<Message, bool>>>();
-            var senderId = parameter.SenderId;                  
+            List<Expression<Func<Message, bool>>> filters = new List<Expression<Func<Message, bool>>>();        
             filters.Add(pm => pm.SenderId == senderId);            
-            var pms =  await _repo.GetAllAsync(filters);       
+            var pms =  await messageRepository.GetAllAsync(filters);       
             return pms.Adapt<IEnumerable<MessageDto>>();
         }
 
         public async Task<IEnumerable<MessageDto>> GetSeenAndUnseenAsync(int roomId, long? firstUnseenMessageId, int numberMessages = 10)
         {
-            var seenPMs = await _repo.GetSeenAndUnseenAsync(roomId, firstUnseenMessageId, numberMessages);
+            var seenPMs = await messageRepository.GetSeenAndUnseenAsync(roomId, firstUnseenMessageId, numberMessages);
 
             return seenPMs.Adapt<IEnumerable<MessageDto>>();
         }
 
         public async Task<IEnumerable<MessageDto>> GetNextMessageAsync(int roomId, long messageId, int? numberMessages = 10)
         {                 
-            var pms = await _repo.GetAllAsync([pm => pm.RoomId == roomId && pm.Id > messageId], orderBy: query => query.OrderBy(pm => pm.CreatedAt), take: numberMessages);
+            var pms = await messageRepository.GetAllAsync([pm => pm.RoomId == roomId && pm.Id > messageId], orderBy: query => query.OrderBy(pm => pm.CreatedAt), take: numberMessages);
             return pms.Adapt<IEnumerable<MessageDto>>();
         }
 
         public async Task<IEnumerable<MessageDto>> GetPreviousMessageAsync(int roomId, long messageId, int? numberMessages = 10)
         {
-            var pms = await _repo.GetAllAsync([pm => pm.RoomId == roomId && pm.Id < messageId], orderBy: query => query.OrderByDescending(pm => pm.CreatedAt) , take: numberMessages);
+            var pms = await messageRepository.GetAllAsync([pm => pm.RoomId == roomId && pm.Id < messageId], orderBy: query => query.OrderByDescending(pm => pm.CreatedAt) , take: numberMessages);
             pms = pms.OrderBy(pm => pm.Id);
             return pms.Adapt<IEnumerable<MessageDto>>();
         }
 
         public async Task<Result<MessageDto>> UpdateIsSeenAsync(long id)
         {
-            var ms = await _repo.GetByIdAsync(id);
+            var ms = await messageRepository.GetByIdAsync(id);
             if (ms == null)
             {
                 return Result.Fail("Message không tồn tại");
@@ -71,7 +66,7 @@ namespace ChatApp_Server.Services
             ms.IsReaded = true;
             try
             {
-                await _repo.SaveAsync();
+                await messageRepository.SaveAsync();
                 var dto = ms.Adapt<MessageDto>();
                 return Result.Ok(dto);
             }
@@ -84,7 +79,7 @@ namespace ChatApp_Server.Services
         {
             try
             {
-                var messages = await _repo.GetAllAsync([pm => pm.RoomId == roomId], query => query.OrderBy(pm => pm.Id), take: 1);
+                var messages = await messageRepository.GetAllAsync([pm => pm.RoomId == roomId], query => query.OrderBy(pm => pm.Id), take: 1);
                 var fm = messages.FirstOrDefault();
                 if (fm == null)
                 {
@@ -103,7 +98,7 @@ namespace ChatApp_Server.Services
         {
            return await ExceptionHandler.HandleLazy<MessageDto>(async () =>
             {
-                var message = await _repo.GetOne([m => m.Id == messageId && m.Room.RoomMemberInfos.Any(info => info.UserId == userId)]);
+                var message = await messageRepository.GetOne([m => m.Id == messageId && m.Room.RoomMemberInfos.Any(info => info.UserId == userId)]);
                 if (message == null)
                 {
                     return Result.Fail("User không ở trong room có tin nhắn này");
@@ -118,7 +113,33 @@ namespace ChatApp_Server.Services
             throw new NotImplementedException();
         }
 
+        public async Task<Result<MessageDto>> CreateMessageAsync(MessageParam param)
+        => await ExceptionHandler.HandleLazy<MessageDto>(async () =>
+        {
+            var entity = param.Adapt<Message>();
+            messageRepository.Insert(entity);
+            await messageRepository.SaveAsync();
+            return entity.Adapt<MessageDto>();         
 
+        });
+
+        public async Task<Result<MessageDetailDto>> AddOrUpdateIsReaded(long mesageId, int userId)
+        {
+            return await ExceptionHandler.HandleLazy<MessageDetailDto>(async () =>
+            {
+                var messageDetail = await messageDetailRepository.AddOrUpdateIsReaded(mesageId, userId);
+                return messageDetail.Adapt<MessageDetailDto>();
+            });
+        }
+
+        public async Task<Result<MessageDetailDto>> AddOrUpdateReaction(long mesageId, int userId, int? reactionId)
+        {
+            return await ExceptionHandler.HandleLazy<MessageDetailDto>(async () =>
+            {
+                var messageDetail = await messageDetailRepository.AddOrUpdateReaction(mesageId, userId, reactionId);
+                return messageDetail.Adapt<MessageDetailDto>();
+            });
+        }
 
         //public async Task<Result<MessageDto>> UpdateReactionMessage(long messageId, int receiverId, int? reactionId)
         //{

@@ -1,9 +1,8 @@
-﻿using FirebaseAdmin.Messaging;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
-namespace ChatApp_Server.Parameters
+namespace ChatApp_Server.Params
 {
-    public class RegisterParameter
+    public class UserParam
     {
         [Required(AllowEmptyStrings = false, ErrorMessage = "Email không được để trống")]
         public string Email { get; set; } = null!;
@@ -15,7 +14,6 @@ namespace ChatApp_Server.Parameters
         public string Fullname { get; set; } = null!;
 
         public IFormFile? File { get; set; }
-
-
+        public string? Avatar { get; set; }
     }
 }

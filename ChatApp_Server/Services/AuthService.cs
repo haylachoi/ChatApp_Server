@@ -16,17 +16,18 @@ using System.Xml.Linq;
 using Microsoft.Extensions.Options;
 using ChatApp_Server.Settings;
 using System.Text;
+using Google.Api.Gax;
+using ChatApp_Server.Params;
 
 namespace ChatApp_Server.Services
 {
     public interface IAuthService
     {
         Task<Result<UserDto>> ValidateCredential(string email, string password);
-        Task<Result<int>> Register(string email, string password, string fullName, string? imgUrl);
-        Task<Result<JwtTokenDto>> CreateToken(UserDto user);
-        Task<Result<JwtTokenDto>> RenewToken(JwtTokenDto jwtToken);
-        Task<UserDto?> GetProfile(int id);
-
+        Task<Result<ProfileDto>> Register(UserParam param);
+        Task<Result<AuthToken>> CreateToken(UserDto user);
+        Task<Result<AuthToken>> RenewToken(AuthToken jwtToken);
+      
         //public Task<Result> ChangePassword(User user, string newPassword);
         //public Task<Result<string>> SendResetPasswordEmail(string email);
         //public Task<Result> ResetPassword(Guid id);
@@ -35,33 +36,15 @@ namespace ChatApp_Server.Services
     }
     public class AuthService(
         IRefreshTokenService refreshTokenService,
-        //IUserService userService,
+        IUserService userService,
         IUserRepository userRepository,
         IOptions<AppSettings> settingsOptions
         ): IAuthService
     {
         private readonly JwtSecurityTokenHandler _jwtHandler = new JwtSecurityTokenHandler();
-        public async Task<Result<int>> Register(string email, string password, string fullName, string? imgUrl)
+        public async Task<Result<ProfileDto>> Register(UserParam param)
         {
-            try
-            {
-                var salt = HashedPassword.GenerateRandomKey();
-                var user = new User
-                {
-                    Email = email,
-                    Fullname = fullName,
-                    Avatar = imgUrl,
-                    Salt = salt,
-                    Password = password.ToSHA512Hash(salt)
-                };
-                userRepository.Insert(user);
-                await userRepository.SaveAsync();
-                return user.Id;
-            }
-            catch (Exception ex)
-            {
-                return Result.Fail(ex.InnerException == null ? ex.Message : ex.InnerException.Message);
-            }
+            return await userService.CreateUser(param);
         }
         public async Task<Result<UserDto>> ValidateCredential(string email, string password)
         {
@@ -84,7 +67,7 @@ namespace ChatApp_Server.Services
                 return Result.Fail(ex.InnerException == null ? ex.Message : ex.InnerException.Message);
             }
         }
-        public async Task<Result<JwtTokenDto>> CreateToken(UserDto user)
+        public async Task<Result<AuthToken>> CreateToken(UserDto user)
         {
             if (user.Id == null)
             {
@@ -100,18 +83,18 @@ namespace ChatApp_Server.Services
 
             var setting = settingsOptions.Value;
             var secret = setting.SecretKey;
-            var (token, tokenString) = JwtTokenGenerator.GenerateAccessToken(identity, DateTime.UtcNow.AddHours(1), Encoding.ASCII.GetBytes(secret)); 
+            var (token, tokenString) = JwtTokenGenerator.GenerateAccessToken(identity, DateTime.UtcNow.AddMinutes(120), Encoding.ASCII.GetBytes(secret)); 
         
             var refreshTokenString = JwtTokenGenerator.GenerateRefreshoken();
             await InsertRefreshTokenAsync(user.Id.Value, token, refreshTokenString, TimeSpan.FromDays(1));
-            return new JwtTokenDto { AccessToken = tokenString, RefreshToken = refreshTokenString };
+            return new AuthToken { AccessToken = tokenString, RefreshToken = refreshTokenString };
         }
-        public async Task<Result<JwtTokenDto>> RenewToken(JwtTokenDto jwtToken)
+        public async Task<Result<AuthToken>> RenewToken(AuthToken jwtToken)
         {
             var storedTokenResult = await ValidateToken(jwtToken.AccessToken, jwtToken.RefreshToken);
             if (storedTokenResult.IsFailed)
             {
-                return storedTokenResult.ToResult<JwtTokenDto>();
+                return storedTokenResult.ToResult<AuthToken>();
             }
             var storedToken = storedTokenResult.Value;
 
@@ -168,7 +151,7 @@ namespace ChatApp_Server.Services
 
                 var utcExpireDate = long.Parse(principal.Claims.FirstOrDefault(x => x.Type == JwtRegisteredClaimNames.Exp)?.Value ?? throw new NullReferenceException());
 
-                var expireDate = Utils.ConvertUnixTimeToDateTime(utcExpireDate);
+                var expireDate = DateTimeOffset.FromUnixTimeSeconds(utcExpireDate).UtcDateTime;
                 if (expireDate > DateTime.UtcNow)
                 {
                     return Result.Fail("Token đã hết hạn");
@@ -218,12 +201,6 @@ namespace ChatApp_Server.Services
                 ExpiredAt = DateTime.Now.Add(expiresIn),
             });
             await refreshTokenService.InsertAsync(refreshToken);
-        }
-
-        public async Task<UserDto?> GetProfile(int id)
-        {
-            var user = await userRepository.GetByIdAsync(id);
-            return user.Adapt<UserDto>();
         }
     }
 }

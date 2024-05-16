@@ -1,5 +1,5 @@
 ﻿using ChatApp_Server.DTOs;
-using ChatApp_Server.Parameters;
+using ChatApp_Server.Params;
 using ChatApp_Server.Services;
 using FluentResults;
 using Microsoft.AspNetCore.Authorization;
@@ -48,7 +48,7 @@ namespace ChatApp_Server.Controllers
                 {
                     continue;
                 }
-                await messageService.InsertAsync(new MessageDto
+                await messageService.CreateMessageAsync(new MessageParam
                 {
                     SenderId = userId,
                     RoomId = roomId,
@@ -63,8 +63,6 @@ namespace ChatApp_Server.Controllers
                 });
             }
             
-            
-
             return Ok();
         }
     }

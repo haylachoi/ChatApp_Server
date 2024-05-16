@@ -13,7 +13,7 @@ public partial class User
     public int Id { get; set; }
 
     [StringLength(30)]
-    public string? Fullname { get; set; }
+    public string Fullname { get; set; } = null!;
 
     [StringLength(128)]
     public string Password { get; set; } = null!;

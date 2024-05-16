@@ -28,8 +28,9 @@ namespace ChatApp_Server.Services
             {
                 var entity = param.Adapt<RoomMemberInfo>();
                 roomMemberInfoRepository.Insert(entity);
-                await roomRepository.SaveAsync();
-                return entity.Adapt<RoomMemberInfoDto>();
+                await roomMemberInfoRepository.SaveAsync();
+                var member = await roomMemberInfoRepository.GetOne([rm => rm.Id == entity.Id], query => query.Include(rm => rm.User));
+                return member.Adapt<RoomMemberInfoDto>();
             });
         }
 
@@ -52,6 +53,7 @@ namespace ChatApp_Server.Services
 
         public async Task<Result<RoomMemberInfoDto>> RemoveMemberAsync(GroupMemberParam param)
         {
+            // todo: check permission
             var memberInfo = await roomMemberInfoRepository.GetOne([r => r.UserId == param.UserId && r.RoomId == param.GroupId]);
             if (memberInfo == null)
             {

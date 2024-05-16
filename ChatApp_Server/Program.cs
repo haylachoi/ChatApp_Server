@@ -7,9 +7,7 @@ using ChatApp_Server.Helper;
 using Microsoft.EntityFrameworkCore;
 using ChatApp_Server.Settings;
 using ChatApp_Server.Models;
-using ChatApp_Server.Services;
 using SignalRChat.Hubs;
-using ChatApp_Server.Repositories;
 using ChatApp_Server.Configs;
 using ChatApp_Server.Hubs;
 using Google.Cloud.Storage.V1;
@@ -97,7 +95,8 @@ var app = builder.Build();
 //app.UseHttpsRedirection();
 app.UseCors(opt =>
 {
-    opt.WithOrigins(@"http://localhost:3000");
+    opt.WithOrigins(@"http://localhost:3000", @"http://192.168.1.9:3000");
+
     opt.AllowAnyHeader();
     opt.AllowCredentials();
     opt.AllowAnyMethod();

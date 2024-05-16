@@ -1,4 +1,5 @@
-﻿using ChatApp_Server.Settings;
+﻿using ChatApp_Server.Helper;
+using ChatApp_Server.Settings;
 using FluentResults;
 using Google.Apis.Auth.OAuth2;
 using Google.Cloud.Storage.V1;
@@ -24,23 +25,19 @@ namespace ChatApp_Server.Services
         }
 
         public async Task<Result<string>> UploadFile(string name, IFormFile file)
+        => await ExceptionHandler.HandleLazy<string>(async () =>
         {
-            try
-            {
-                var randomGuid = Guid.NewGuid();
-                using var stream = new MemoryStream();
-                await file.CopyToAsync(stream);
-                var objectName = $"{randomGuid}-{name}";
-                var blob = await _storageClient.UploadObjectAsync(_bucketName,
-                   objectName , file.ContentType, stream);
+            var randomGuid = Guid.NewGuid();
+            using var stream = new MemoryStream();
+            await file.CopyToAsync(stream);
+            var objectName = $"{randomGuid}-{name}";
+            var blob = await _storageClient.UploadObjectAsync(_bucketName,
+                objectName, file.ContentType, stream);
 
-                var publicUrl = @$"{_baseUrl}/{_bucketName}/{blob.Name}";
-                return Result.Ok(publicUrl);
-            }
-            catch (Exception ex)
-            {
-                return Result.Fail(ex.InnerException == null ? ex.Message : ex.InnerException.Message);
-            }
-        }
+            var publicUrl = @$"{_baseUrl}/{_bucketName}/{blob.Name}";
+            return Result.Ok(publicUrl);
+
+        });
+        
     }
 }

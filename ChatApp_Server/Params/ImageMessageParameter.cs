@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace ChatApp_Server.Parameters
+namespace ChatApp_Server.Params
 {
     public class ImageMessageParameter
     {

@@ -1,24 +1,18 @@
 ﻿using ChatApp_Server.DTOs;
-using ChatApp_Server.Models;
-using ChatApp_Server.Parameters;
 using ChatApp_Server.Repositories;
 using FluentResults;
 using Mapster;
 
 namespace ChatApp_Server.Services
 {
-    public interface IFriendshipService: IBaseService<IFriendshipRepository, Friendship, FriendshipParameter, int,FriendshipDto>
+    public interface IFriendshipService
     {
         Task<Result> AcceptFriendRequest(int id);
         Task<Result> RefuseFriendRequest(int id);
         Task<Result> CancelFriendRequest(int id);
     }
-    public class FriendshipService : BaseService<IFriendshipRepository, Friendship, FriendshipParameter, int, FriendshipDto>, IFriendshipService
-    {
-        public FriendshipService(IFriendshipRepository repo) : base(repo)
-        {
-        }
-
+    public class FriendshipService(IFriendshipRepository _repo) : IFriendshipService
+    {    
         public async Task<Result> AcceptFriendRequest(int id)
         {
             try
@@ -58,10 +52,10 @@ namespace ChatApp_Server.Services
             }
         }
 
-        public override async Task<IEnumerable<FriendshipDto>> GetAllAsync(FriendshipParameter parameter)
+        public async Task<IEnumerable<FriendshipDto>> GetAllAsync(int receiverId)
         {
            
-            var friends = await _repo.GetAllAsync([fs => fs.ReceiverId == parameter.ReceiverId]);
+            var friends = await _repo.GetAllAsync([fs => fs.ReceiverId == receiverId]);
             return friends.Adapt<IEnumerable<FriendshipDto>>();
         }
 

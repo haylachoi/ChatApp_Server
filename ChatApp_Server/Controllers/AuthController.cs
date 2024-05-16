@@ -1,11 +1,8 @@
 ﻿using ChatApp_Server.DTOs;
-using ChatApp_Server.Parameters;
+using ChatApp_Server.Params;
 using ChatApp_Server.Services;
 using FluentResults.Extensions.AspNetCore;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
-using System.Security.Claims;
 
 
 namespace WebApplication1.Controllers
@@ -15,7 +12,7 @@ namespace WebApplication1.Controllers
     public class AuthController(IAuthService authService, IFireBaseCloudService fireBaseCloudService): ControllerBase
     {
         [HttpPost("register")]
-        public async Task<IActionResult> Register(RegisterParameter param)
+        public async Task<IActionResult> Register(UserParam param)
         {
             string? avatarUrl = null;
             if (param.File != null)
@@ -26,12 +23,12 @@ namespace WebApplication1.Controllers
                     avatarUrl = urlResult.Value;
                 }
             }
-            
-            var result = await authService.Register(param.Email, param.Password, param.Fullname, avatarUrl);
+            param.Avatar = avatarUrl;
+            var result = await authService.Register(param);
             return result.ToActionResult();
         }
         [HttpPost("login")]
-        public async Task<IActionResult> Login(LoginParameter param)
+        public async Task<IActionResult> Login(CredentialParam param)
         {
             if (!ModelState.IsValid)
             {
@@ -50,18 +47,19 @@ namespace WebApplication1.Controllers
             return jwtTokenResult.ToActionResult();
 
         }
-        [HttpGet("profile")]
-        public async Task<IActionResult> Profile()
-        {
-            var identifier = HttpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-            if (!int.TryParse(identifier, out var userId))
-            {
-                return Unauthorized();
-            }
-            var user = await authService.GetProfile(userId);
-            return Ok(user);
-        }
+       
 
+        [HttpPost("refresh")]
+        public async Task<IActionResult> RenewToken(AuthToken jwtToken)
+        {
+            var tokenResult = await authService.RenewToken(jwtToken);
+            if (tokenResult.IsFailed)
+            {
+                return BadRequest(tokenResult.Errors);
+            }
+            return Ok(tokenResult.Value);
+           
+        }
         //[HttpGet("test")]
         //public async Task<IActionResult> Test()
         //{
