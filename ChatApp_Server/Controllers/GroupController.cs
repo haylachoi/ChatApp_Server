@@ -1,4 +1,5 @@
-﻿using ChatApp_Server.Params;
+﻿using ChatApp_Server.Hubs;
+using ChatApp_Server.Params;
 using ChatApp_Server.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -11,13 +12,13 @@ namespace ChatApp_Server.Controllers
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
-    public class GroupController(IGroupService groupService, IHubContext<ChatHub> hubContext) : ControllerBase
+    public class GroupController(IGroupService groupService, IHubContext<ClientHub> hubContext) : ControllerBase
     {
         [HttpPost]
         public async Task<IActionResult> CreateGroup([FromForm]GroupParam param)
         {
             var stringId = HttpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-            if (!int.TryParse(stringId, out var userId))
+            if (stringId == null || !int.TryParse(stringId, out var userId))
             {
                 return Unauthorized();
             }
@@ -38,7 +39,7 @@ namespace ChatApp_Server.Controllers
                 return BadRequest();
             }
 
-            await hubContext.Clients.User(stringId!).SendAsync("CreateGroup", room);
+            await hubContext.Clients.User(stringId).SendAsync("CreateRoom", room);
 
             return Ok();
         }

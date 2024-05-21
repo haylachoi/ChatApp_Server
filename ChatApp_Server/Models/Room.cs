@@ -25,6 +25,9 @@ public partial class Room
     [InverseProperty("RoomFirstMessages")]
     public virtual Message? FirstMessage { get; set; }
 
+    [InverseProperty("Group")]
+    public virtual GroupInfo? GroupInfo { get; set; }
+
     [ForeignKey("LastMessageId")]
     [InverseProperty("RoomLastMessages")]
     public virtual Message? LastMessage { get; set; }

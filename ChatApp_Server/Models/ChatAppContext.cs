@@ -21,6 +21,8 @@ public partial class ChatAppContext : DbContext
 
     public virtual DbSet<Group> Groups { get; set; }
 
+    public virtual DbSet<GroupInfo> GroupInfos { get; set; }
+
     public virtual DbSet<Message> Messages { get; set; }
 
     public virtual DbSet<MessageDetail> MessageDetails { get; set; }
@@ -75,14 +77,27 @@ public partial class ChatAppContext : DbContext
 
         modelBuilder.Entity<Group>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("groups_pkey");
+            entity.HasKey(e => e.GroupId).HasName("groups_pkey");
 
-            entity.Property(e => e.Id).UseIdentityAlwaysColumn();
+            entity.Property(e => e.GroupId).UseIdentityAlwaysColumn();
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
 
             entity.HasOne(d => d.GroupOwner).WithMany(p => p.Groups)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("fk_groups_users_ownerid");
+        });
+
+        modelBuilder.Entity<GroupInfo>(entity =>
+        {
+            entity.HasKey(e => e.GroupId).HasName("GroupInfo_pkey");
+
+            entity.Property(e => e.GroupId).ValueGeneratedNever();
+
+            entity.HasOne(d => d.Group).WithOne(p => p.GroupInfo).HasConstraintName("fk_gi_room");
+
+            entity.HasOne(d => d.GroupOnwer).WithMany(p => p.GroupInfos)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fk_gi_user");
         });
 
         modelBuilder.Entity<Message>(entity =>

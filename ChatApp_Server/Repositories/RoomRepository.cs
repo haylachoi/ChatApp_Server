@@ -6,6 +6,7 @@ namespace ChatApp_Server.Repositories
     public interface IRoomRepository : IBaseRepository<Room, int>
     {
         Task<Message?> GetLastUnseenMessage(int roomId, int userId);
+        Task<Room?> GetOneWithInfoAsync(int roomId);
     }
     public class RoomRepository : BaseRepository<Room, int>, IRoomRepository
     {
@@ -24,6 +25,16 @@ namespace ChatApp_Server.Repositories
 
 
             return await query.FirstOrDefaultAsync();
+        }
+
+        public async Task<Room?> GetOneWithInfoAsync(int roomId)
+        {
+            return await GetOne(
+                [r => r.Id == roomId], 
+                query => query
+                    .Include(r => r.GroupInfo).ThenInclude(gi => gi!.GroupOnwer)
+                    .Include(r => r.RoomMemberInfos).ThenInclude(info => info.LastUnseenMessage)
+                    .Include(r => r.RoomMemberInfos).ThenInclude(info => info.User));
         }
     }
 }

@@ -83,7 +83,7 @@ namespace ChatApp_Server.Services
 
             var setting = settingsOptions.Value;
             var secret = setting.SecretKey;
-            var (token, tokenString) = JwtTokenGenerator.GenerateAccessToken(identity, DateTime.UtcNow.AddMinutes(120), Encoding.ASCII.GetBytes(secret)); 
+            var (token, tokenString) = JwtTokenGenerator.GenerateAccessToken(identity, DateTime.UtcNow.AddMinutes(600), Encoding.ASCII.GetBytes(secret)); 
         
             var refreshTokenString = JwtTokenGenerator.GenerateRefreshoken();
             await InsertRefreshTokenAsync(user.Id.Value, token, refreshTokenString, TimeSpan.FromDays(1));

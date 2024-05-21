@@ -12,10 +12,13 @@ namespace ChatApp_Server.Configs
         {                  
             TypeAdapterConfig<GroupParam, Room>
                  .NewConfig()
-                 .Map(dest => dest.RoomMemberInfos, src => src.userIds == null ? new List<RoomMemberInfo>() :src.userIds.Select(id => new RoomMemberInfo { UserId = id}));
+                 .Map(dest => dest.IsGroup, src => true)
+                 .Map(dest => dest.GroupInfo, src  => new GroupInfo { Avatar = src.Avatar, GroupOnwerId = src.GroupOwnerId, Name = src.Name })
+                 .Map(dest => dest.RoomMemberInfos, src => src.userIds == null ? new List<RoomMemberInfo>() :src.userIds.Select(id => new RoomMemberInfo { UserId = id, CanDisplayRoom = true}));
 
             TypeAdapterConfig<GroupMemberParam, RoomMemberInfo>
                 .NewConfig()
+                .Map(dest => dest.CanDisplayRoom, src => true)
                 .Map(dest => dest.RoomId, src => src.GroupId);
 
             TypeAdapterConfig<RoomParam, Room>
@@ -31,6 +34,11 @@ namespace ChatApp_Server.Configs
                 .NewConfig()
                 .Map(dest => dest.Salt, src => MapContext.Current!.Parameters["salt"])
                 .Map(dest => dest.Password, src => src.Password.ToSHA512Hash(MapContext.Current!.Parameters["salt"] as string));
+
+
+
+            //
+           
 
         }
     }

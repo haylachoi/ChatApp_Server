@@ -39,8 +39,9 @@ namespace ChatApp_Server.Services
          
             List<Expression<Func<Room, bool>>> filters = new List<Expression<Func<Room, bool>>>();
             Func<IQueryable<Room>, IIncludableQueryable<Room, object>>? includes = query => query
-                .Include(r => r.RoomMemberInfos).ThenInclude(info => info.LastUnseenMessage)
-                .Include(r => r.RoomMemberInfos).ThenInclude(info => info.User);          
+                .Include(r => r.GroupInfo).ThenInclude(gi => gi!.GroupOnwer)
+                .Include(r => r.RoomMemberInfos).ThenInclude(rm => rm.LastUnseenMessage)
+                .Include(r => r.RoomMemberInfos).ThenInclude(rm => rm.User);          
             
             var prs = await roomRepository.GetAllAsync(filters, includes: includes);
             var prDtos = prs.Adapt<IEnumerable<RoomDto>>().ToArray();
@@ -69,7 +70,7 @@ namespace ChatApp_Server.Services
 
         public async Task<RoomDto?> GetOneAsync(int roomId)
         {
-            var room = await roomRepository.GetOne([r => r.Id == roomId], query => query.Include(r => r.RoomMemberInfos).ThenInclude(info => info.LastUnseenMessage));
+            var room = await roomRepository.GetOneWithInfoAsync(roomId);
             return room.Adapt<RoomDto>();
         }
 
@@ -81,7 +82,7 @@ namespace ChatApp_Server.Services
                 roomRepository.Insert(room);
                 await roomRepository.SaveAsync();
                 var id = room.Id;
-                room = await roomRepository.GetOne([r => r.Id == id], query => query.Include(r => r.RoomMemberInfos).ThenInclude(info => info.User));
+                room = await roomRepository.GetOneWithInfoAsync(id);
                 return room.Adapt<RoomDto>();
             });
         }
@@ -90,8 +91,11 @@ namespace ChatApp_Server.Services
         {
             var rooms = await roomRepository.GetAllAsync(
                 [r => r.RoomMemberInfos.Any(info => info.UserId == userId)], 
-                includes: query => query.Include(r => r.RoomMemberInfos).ThenInclude(info => info.LastUnseenMessage).Include(r => r.RoomMemberInfos).ThenInclude(info => info.User)
-            );
+                includes: query => query
+                    .Include(r => r.GroupInfo).ThenInclude(gi => gi!.GroupOnwer)
+                    .Include(r => r.RoomMemberInfos).ThenInclude(info => info.LastUnseenMessage)
+                    .Include(r => r.RoomMemberInfos).ThenInclude(info => info.User)
+            );       
             return rooms.Adapt<IEnumerable<RoomDto>>();
         }
 

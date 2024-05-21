@@ -15,8 +15,9 @@ namespace ChatApp_Server.Services
     {
         Task<RoomDto> GetByIdAsync(int groupId);
         Task<Result<RoomDto>> CreateGroupAsync(GroupParam param);
+        Task<Result<RoomDto>> DeleteGroupAsync(GroupMemberParam param);
         Task<Result<RoomMemberInfoDto>> AddMemberAsync(GroupMemberParam param);
-        Task<Result<RoomMemberInfoDto>> RemoveMemberAsync(GroupMemberParam param);
+        Task<Result<RoomMemberInfoDto>> RemoveMemberAsync(int userId, GroupMemberParam param);
     }
     public class GroupService(       
         IRoomRepository roomRepository, 
@@ -45,15 +46,41 @@ namespace ChatApp_Server.Services
             });
         }
 
+        public async Task<Result<RoomDto>> DeleteGroupAsync(GroupMemberParam param)
+        => await ExceptionHandler.HandleLazy<RoomDto>(async () =>
+        {
+            var group = await roomRepository.GetOne([r => r.Id == param.GroupId], query => query.Include(r => r.GroupInfo).ThenInclude(gi => gi!.GroupOnwer).Include(r => r.RoomMemberInfos).ThenInclude(info => info.LastUnseenMessage));
+            if (group == null)
+            {
+                return Result.Fail("Group không tồn tại");
+            }
+            if (group.GroupInfo == null || group.GroupInfo.GroupOnwerId != param.UserId)
+            {
+                return Result.Fail("Bạn không có quyền xóa group");
+            }
+            roomRepository.Delete(group);
+            await roomRepository.SaveAsync();
+            return group.Adapt<RoomDto>();
+        });
+
         public async Task<RoomDto> GetByIdAsync(int groupId)
         {
-            var group = await roomRepository.GetOne([r => r.Id == groupId], query => query.Include(r => r.RoomMemberInfos).ThenInclude(info => info.LastUnseenMessage));
+            var group = await roomRepository.GetOne([r => r.Id == groupId], query => query.Include(r => r.GroupInfo).ThenInclude(gi => gi!.GroupOnwer).Include(r => r.RoomMemberInfos).ThenInclude(info => info.LastUnseenMessage));
             return group.Adapt<RoomDto>();
         }
 
-        public async Task<Result<RoomMemberInfoDto>> RemoveMemberAsync(GroupMemberParam param)
+        public async Task<Result<RoomMemberInfoDto>> RemoveMemberAsync(int userId, GroupMemberParam param)
         {
             // todo: check permission
+            var group = await roomRepository.GetOne([r => r.Id == param.GroupId], query => query.Include(r => r.GroupInfo));
+            if (group == null)
+            {
+                return Result.Fail("Group không tồn tại");
+            }
+            if (group.GroupInfo == null || group.GroupInfo.GroupOnwerId != userId)
+            {
+                return Result.Fail("Bạn không có quyền kích thành viên group");
+            }
             var memberInfo = await roomMemberInfoRepository.GetOne([r => r.UserId == param.UserId && r.RoomId == param.GroupId]);
             if (memberInfo == null)
             {

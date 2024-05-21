@@ -109,6 +109,7 @@ app.MapControllers();
 app.MapHub<ChatHub>("/hub/chat");
 app.MapHub<UserHub>("/hub/user");
 app.MapHub<RoomHub>("/hub/room");
+app.MapHub<ClientHub>("/hub/client");
 
 app.UseProblemDetails();
 app.Run();

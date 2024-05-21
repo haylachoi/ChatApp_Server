@@ -9,18 +9,18 @@ using Microsoft.AspNetCore.SignalR;
 namespace ChatApp_Server.Hubs
 {
     [Authorize]
-    public class UserHub: Hub
+    public class UserHub(IUserService userService, IReactionService reactionService, IFriendshipService friendshipService) : Hub
     {
-        private readonly IUserService userService;
-        private readonly IReactionService reactionService;
-        private readonly IFriendshipService _friendshipService;
+        //private readonly IUserService userService;
+        //private readonly IReactionService reactionService;
+        //private readonly IFriendshipService _friendshipService;
 
-        public UserHub(IUserService userService, IReactionService reactionService, IFriendshipService friendshipService)
-        {
-            this.userService = userService;
-            this.reactionService = reactionService;
-            this._friendshipService = friendshipService;
-        }
+        //public UserHub(IUserService userService, IReactionService reactionService, IFriendshipService friendshipService)
+        //{
+        //    this.userService = userService;
+        //    this.reactionService = reactionService;
+        //    this._friendshipService = friendshipService;
+        //}
         public async Task<HubResponse> ChangeProfile(JsonPatchDocument<ProfileDto> patchDoc)
         {
             var userId = int.Parse(Context.UserIdentifier!);
@@ -109,15 +109,15 @@ namespace ChatApp_Server.Hubs
         //    }
         //    await Clients.Caller.SendAsync("CancelFriendRequest", HubResponse.Ok());
         //}
-        public override async Task OnConnectedAsync()
-        {
-            var user = await userService.GetByIdAsync(int.Parse(Context.UserIdentifier!));
-            await Clients.All.SendAsync("OnConnected", user);
-        }
-        public override async Task OnDisconnectedAsync(Exception? exception)
-        {
-            await Clients.All.SendAsync("OnDisconnected", $"{Context.UserIdentifier} has disconnected");
-            await base.OnDisconnectedAsync(exception);          
-        }
+        //public override async Task OnConnectedAsync()
+        //{
+        //    var user = await userService.GetByIdAsync(int.Parse(Context.UserIdentifier!));
+        //    await Clients.All.SendAsync("OnConnected", user);
+        //}
+        //public override async Task OnDisconnectedAsync(Exception? exception)
+        //{
+        //    await Clients.All.SendAsync("OnDisconnected", $"{Context.UserIdentifier} has disconnected");
+        //    await base.OnDisconnectedAsync(exception);          
+        //}
     }
 }

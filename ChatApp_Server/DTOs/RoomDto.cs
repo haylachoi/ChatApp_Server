@@ -1,4 +1,6 @@
-﻿namespace ChatApp_Server.DTOs
+﻿using ChatApp_Server.Models;
+
+namespace ChatApp_Server.DTOs
 {
     public class RoomDto
     {
@@ -8,6 +10,7 @@
         public string? Avatar {  get; set; }
         public long? LastMessageId { get; set; }
         public long? FirstMessageId { get; set; }
+        public GroupInfoDto? GroupInfo { get; set; }
         public RoomMemberInfoDto CurrentRoomInfo { get; set; } = null!;
         public IEnumerable<RoomMemberInfoDto> RoomMemberInfos { get; set; } = Enumerable.Empty<RoomMemberInfoDto>();
      

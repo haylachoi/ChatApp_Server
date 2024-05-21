@@ -1,9 +1,9 @@
-﻿using ChatApp_Server.Services;
+﻿using ChatApp_Server.Hubs;
+using ChatApp_Server.Services;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
-using SignalRChat.Hubs;
+
 using System.Security.Claims;
 
 namespace ChatApp_Server.Controllers
@@ -11,7 +11,7 @@ namespace ChatApp_Server.Controllers
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
-    public class UserController(IUserService userService, IFireBaseCloudService fireBaseCloudService, IHubContext<ChatHub> hubContext) : ControllerBase
+    public class UserController(IUserService userService, IFireBaseCloudService fireBaseCloudService, IHubContext<ClientHub> hubContext) : ControllerBase
     {
         [HttpGet]
         public async Task<IActionResult> Profile()

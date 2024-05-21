@@ -1,13 +1,13 @@
-﻿using ChatApp_Server.DTOs;
+﻿
+using ChatApp_Server.Hubs;
 using ChatApp_Server.Params;
 using ChatApp_Server.Services;
 using FluentResults;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
+
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
-using SignalRChat.Hubs;
-using System.Net;
+
 using System.Security.Claims;
 
 namespace ChatApp_Server.Controllers
@@ -18,7 +18,7 @@ namespace ChatApp_Server.Controllers
     public class ChatController(IFireBaseCloudService fireBaseCloudService, 
         IRoomService roomService,
         IMessageService messageService, 
-        IHubContext<ChatHub> hubContext) : ControllerBase
+        IHubContext<ClientHub> hubContext) : ControllerBase
     {
         [HttpPost]
         public async Task<IActionResult> CreateImageMessage(ImageMessageParameter param) 

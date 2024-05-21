@@ -1,4 +1,6 @@
 ﻿using ChatApp_Server.Helper;
+using ChatApp_Server.Hubs;
+using ChatApp_Server.Models;
 using ChatApp_Server.Params;
 using ChatApp_Server.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -7,28 +9,33 @@ using Microsoft.AspNetCore.SignalR;
 namespace SignalRChat.Hubs
 {
     [Authorize]
-    public class ChatHub : Hub
+    public class ChatHub(
+         IMessageService messageService,
+            IUserService userService,
+            IRoomService roomService,
+            IHubContext<ClientHub> clientContext            
+        ) : Hub
     {
-        readonly IMessageService messageService;
+        //readonly IMessageService messageService;
+        //private readonly IUserService userService;
+        //readonly IRoomService roomService;
 
-        readonly IRoomService roomService;
+        //readonly ConnectionMapping<string> _connections;
 
-        readonly ConnectionMapping<string> _connections;
+        //public ChatHub(
+       
+        //    IMessageService messageService,
+        //    IUserService userService,
+        //    IRoomService RoomService,
+        //    ConnectionMapping<string> connections
+        //)
+        //{
+        //    this.messageService = messageService;
+        //    this.userService = userService;
+        //    this.roomService = RoomService;
 
-        public ChatHub(
-            IFriendshipService friendshipService,
-            IMessageService MessageService,
-
-            IRoomService RoomService,
-            ConnectionMapping<string> connections
-        )
-        {
-            this.messageService = MessageService;
-
-            this.roomService = RoomService;
-
-            _connections = connections;
-        }
+        //    _connections = connections;
+        //}
 
 
         public async Task<HubResponse> SendMessage(int roomId, string message)
@@ -51,10 +58,9 @@ namespace SignalRChat.Hubs
             if (result.IsFailed)
             {
                 return HubResponse.Fail(new { error = result.Errors[0].Message });
-            }
+            }          
 
-
-            await Clients.Group(roomId.ToString()).SendAsync("ReceiveMessage", result.Value);
+            await clientContext.Clients.Group(roomId.ToString()).SendAsync("ReceiveMessage", result.Value);
             return HubResponse.Ok();
         }
         public async Task<HubResponse> UpdateReactionMessage(long messageId, int? reactionId)
@@ -72,7 +78,7 @@ namespace SignalRChat.Hubs
             }
             var md = result.Value;
             var roomId = messageResult.Value.RoomId;
-            await Clients.Group(roomId.ToString()).SendAsync("UpdateReactionMessage", roomId, md);
+            await clientContext.Clients.Group(roomId.ToString()).SendAsync("UpdateReactionMessage", roomId, md);
 
             return HubResponse.Ok(result.Value);
         }
@@ -92,82 +98,69 @@ namespace SignalRChat.Hubs
             }
             var md = result.Value;
             var room = await roomService.GetOneAsync(messageResult.Value.RoomId);
-            await Clients.Group(messageResult.Value.RoomId.ToString()).SendAsync("UpdateIsReaded", md, room);
+            await clientContext.Clients.Group(messageResult.Value.RoomId.ToString()).SendAsync("UpdateIsReaded", md, room);
 
             return HubResponse.Ok(result.Value);
         }
         public async Task<HubResponse> CallVideo(int roomId, int receiverId, string peerId)
         {
+            var userId = int.Parse(Context.UserIdentifier!);
+            var caller = await userService.GetByIdAsync(userId);
 
-            await Clients.User(receiverId.ToString()).SendAsync("CallVideo", roomId, peerId);
+            await clientContext.Clients.User(receiverId.ToString()).SendAsync("CallVideo", roomId, peerId, caller);
             return HubResponse.Ok();
         }
-
-        public override async Task OnConnectedAsync()
+        public async Task<HubResponse> AcceptVideoCall(int callerId, string peerId)
+        {          
+            await clientContext.Clients.User(callerId.ToString()).SendAsync("AcceptVideoCall", peerId);
+            return HubResponse.Ok();
+        }
+        public async Task<HubResponse> RejectVideoCall(int callerId, string peerId)
         {
-            if (Context.UserIdentifier == null)
-            {
-                return;
-            }
+            await clientContext.Clients.User(callerId.ToString()).SendAsync("RejectVideoCall",  peerId);
+            return HubResponse.Ok();
+        }
+        public async Task<HubResponse> CancelVideoCall(int receiverId, string peerId) 
+        {
+            await clientContext.Clients.User(receiverId.ToString()).SendAsync("CancelVideoCall", peerId);
+            return HubResponse.Ok();
+        }
+        //public override async Task OnConnectedAsync()
+        //{
+        //    if (Context.UserIdentifier == null)
+        //    {
+        //        return;
+        //    }
            
-            // save connectionid to user identity;;
-            _connections.Add(Context.UserIdentifier, Context.ConnectionId);
+        //    // save connectionid to user identity;;
+        //    _connections.Add(Context.UserIdentifier, Context.ConnectionId);
 
-            if (!int.TryParse(Context.UserIdentifier, out var userId))
-            {
-                return;
-            }
-            var groupMembers = await roomService.GetAllRoomOfMembersAsync(userId);
-            List<Task> addToGroupTaskList = new List<Task>();
-            foreach (var gm in groupMembers)
-            {
-                addToGroupTaskList.Add(Groups.AddToGroupAsync(Context.ConnectionId, gm.RoomId.ToString()));
-            }
-            await Task.WhenAll(addToGroupTaskList);
+        //    if (!int.TryParse(Context.UserIdentifier, out var userId))
+        //    {
+        //        return;
+        //    }
+        //    var groupMembers = await roomService.GetAllRoomOfMembersAsync(userId);
+        //    List<Task> addToGroupTaskList = new List<Task>();
+        //    foreach (var gm in groupMembers)
+        //    {
+        //        addToGroupTaskList.Add(Groups.AddToGroupAsync(Context.ConnectionId, gm.RoomId.ToString()));
+        //    }
+        //    await Task.WhenAll(addToGroupTaskList);
 
-        }
-        public override Task OnDisconnectedAsync(Exception? exception)
-        {
-            if (Context.UserIdentifier != null)
-            {
-                _connections.Remove(Context.UserIdentifier, Context.ConnectionId);
-            }
-            base.OnDisconnectedAsync(exception);
-            return Task.CompletedTask;
-        }
+        //}
+        //public override Task OnDisconnectedAsync(Exception? exception)
+        //{
+        //    if (Context.UserIdentifier != null)
+        //    {
+        //        _connections.Remove(Context.UserIdentifier, Context.ConnectionId);
+        //    }
+        //    base.OnDisconnectedAsync(exception);
+        //    return Task.CompletedTask;
+        //}
 
        
 
-        //async Task AddConnectionToGroup(string groupname, string userId)
-        //{
-        //    var connections = _connections.GetConnections(userId);
-        //    if (connections == null)
-        //    {
-        //        return;
-        //    }
-
-        //    List<Task> addToGroupTaskList = new List<Task>();
-        //    foreach (var connection in connections)
-        //    {
-        //        addToGroupTaskList.Add(Groups.AddToGroupAsync(connection, groupname));
-        //    }
-        //    await Task.WhenAll(addToGroupTaskList);
-        //}
-        //async Task RemoveConnectionFromGroup(string groupname, string userId)
-        //{
-        //    var connections = _connections.GetConnections(userId);
-        //    if (connections == null)
-        //    {
-        //        return;
-        //    }
-
-        //    List<Task> addToGroupTaskList = new List<Task>();
-        //    foreach (var connection in connections)
-        //    {
-        //        addToGroupTaskList.Remove(Groups.AddToGroupAsync(connection, groupname));
-        //    }
-        //    await Task.WhenAll(addToGroupTaskList);
-        //}
+        
     }
 
 }
