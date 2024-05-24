@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ChatApp_Server.Models;
 
+[Index("Id", "RoomId", Name = "unq_messages_id_roomid", IsUnique = true)]
 public partial class Message
 {
     [Key]
@@ -40,10 +41,7 @@ public partial class Message
     public virtual ICollection<Room> RoomLastMessages { get; set; } = new List<Room>();
 
     [InverseProperty("FirstUnseenMessage")]
-    public virtual ICollection<RoomMemberInfo> RoomMemberInfoFirstUnseenMessages { get; set; } = new List<RoomMemberInfo>();
-
-    [InverseProperty("LastUnseenMessage")]
-    public virtual ICollection<RoomMemberInfo> RoomMemberInfoLastUnseenMessages { get; set; } = new List<RoomMemberInfo>();
+    public virtual ICollection<RoomMemberInfo> RoomMemberInfos { get; set; } = new List<RoomMemberInfo>();
 
     [ForeignKey("SenderId")]
     [InverseProperty("Messages")]

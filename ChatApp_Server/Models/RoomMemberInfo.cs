@@ -16,11 +16,7 @@ public partial class RoomMemberInfo
 
     public int RoomId { get; set; }
 
-    public long? FirstUnseenMessageId { get; set; }
-
     public long UnseenMessageCount { get; set; }
-
-    public long? LastUnseenMessageId { get; set; }
 
     [Column("canDisplayRoom")]
     public bool CanDisplayRoom { get; set; }
@@ -28,13 +24,11 @@ public partial class RoomMemberInfo
     [Column("canShowNofitication")]
     public bool CanShowNofitication { get; set; }
 
-    [ForeignKey("FirstUnseenMessageId")]
-    [InverseProperty("RoomMemberInfoFirstUnseenMessages")]
-    public virtual Message? FirstUnseenMessage { get; set; }
+    public long? FirstUnseenMessageId { get; set; }
 
-    [ForeignKey("LastUnseenMessageId")]
-    [InverseProperty("RoomMemberInfoLastUnseenMessages")]
-    public virtual Message? LastUnseenMessage { get; set; }
+    [ForeignKey("FirstUnseenMessageId")]
+    [InverseProperty("RoomMemberInfos")]
+    public virtual Message? FirstUnseenMessage { get; set; }
 
     [ForeignKey("RoomId")]
     [InverseProperty("RoomMemberInfos")]

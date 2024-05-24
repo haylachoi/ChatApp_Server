@@ -5,6 +5,7 @@ using ChatApp_Server.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using SignalRChat.Hubs;
+using System.Text.RegularExpressions;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
 
 namespace ChatApp_Server.Hubs
@@ -14,37 +15,10 @@ namespace ChatApp_Server.Hubs
            IRoomService _roomService,
             IGroupService _groupService,
             IMessageService _messageService,
-            IHubContext<ClientHub> _hubContext,
+            IHubContext<ClientHub> _clientContext,
             ConnectionMapping<string> _connections
     ) : Hub
-    {
-        //private readonly IRoomService roomService;
-        //private readonly IGroupService groupService;
-        //private readonly IMessageService messageService;
-        //private readonly IHubContext<ChatHub> chatHubContext;
-        //private readonly ConnectionMapping<string> connections;
-
-        //public RoomHub(
-        //    IRoomService roomService, 
-        //    IGroupService groupService, 
-        //    IMessageService messageService, 
-        //    IHubContext<ChatHub> chatHubContext,
-        //    ConnectionMapping<string> connections
-        //)
-        //{
-        //    this.roomService = roomService;
-        //    this.groupService = groupService;
-        //    this.messageService = messageService;
-        //    this.chatHubContext = chatHubContext;
-        //    this.connections = connections;
-        //}
-        public async Task<HubResponse> GetLastMessageUnseen(int roomId)
-        {
-            var userId = int.Parse(Context.UserIdentifier!);
-
-            var message = await _roomService.GetLastUnseenMessage(roomId, userId);
-            return HubResponse.Ok(message);
-        }
+    {    
         public async Task<HubResponse> CreateRoom(int friendId)
         {
             var userId = int.Parse(Context.UserIdentifier!);
@@ -61,16 +35,32 @@ namespace ChatApp_Server.Hubs
             }
 
             var room = result.Value;
-            await AddConnectionToGroup(room.Id.ToString(), userId.ToString(), _hubContext);
-            await AddConnectionToGroup(room.Id.ToString(), friendId.ToString(), _hubContext);         
-            _ = _hubContext.Clients.Groups(room.Id.ToString()).SendAsync("JoinRoom", room);
+
+            await _connections.AddConnectionToGroup(room.Id.ToString(), userId.ToString(), _clientContext);
+            await _connections.AddConnectionToGroup(room.Id.ToString(), friendId.ToString(), _clientContext);
+            _ = _clientContext.Clients.Groups(room.Id.ToString()).SendAsync("JoinRoom", room);
+
+            return HubResponse.Ok();
+        }
+        public async Task<HubResponse> LeaveGroup(int groupId)
+        {
+            var userId = int.Parse(Context.UserIdentifier!);
+            var result = await _groupService.LeaveGroupAsync(new MemberParam { GroupId = groupId, UserId = userId });
+            if (result.IsFailed)
+            {
+                return HubResponse.Fail(result.Errors);
+            }
+
+            _ = _clientContext.Clients.User(userId.ToString()).SendAsync("LeftRoom", groupId);
+            _ = _clientContext.Clients.GroupExcept(groupId.ToString(), userId.ToString()).SendAsync("RemoveGroupMember", result.Value.RoomId, result.Value.UserId);
+
             return HubResponse.Ok();
         }
         public async Task<HubResponse> DeleteGroup(int groupId)
         {
             var userId = int.Parse(Context.UserIdentifier!);
 
-            var result = await _groupService.DeleteGroupAsync(new GroupMemberParam
+            var result = await _groupService.DeleteGroupAsync(new MemberParam
             {
                 GroupId = groupId,
                 UserId = userId
@@ -79,13 +69,14 @@ namespace ChatApp_Server.Hubs
             if (result.IsFailed)
             {
                 return HubResponse.Fail(result.Errors);
-            }          
-            _ = _hubContext.Clients.Group(groupId.ToString()).SendAsync("DeleteGroup", result.Value.Id);
+            }
+            _ = _clientContext.Clients.Group(groupId.ToString()).SendAsync("DeleteGroup", result.Value.Id);
+
             return HubResponse.Ok();
         }
-        public async Task<HubResponse> AddGroupMember(int groupId,int userId)
+        public async Task<HubResponse> AddGroupMember(int groupId, int userId)
         {
-            var result = await _groupService.AddMemberAsync(new GroupMemberParam
+            var result = await _groupService.AddMemberAsync(new MemberParam
             {
                 GroupId = groupId,
                 UserId = userId
@@ -95,20 +86,22 @@ namespace ChatApp_Server.Hubs
             {
                 return HubResponse.Fail(result.Errors);
             }
-            _ = _hubContext.Clients.Group(groupId.ToString()).SendAsync("AddGroupMember", result.Value);
-            await AddConnectionToGroup(groupId.ToString(), userId.ToString(), _hubContext);
+            _ = _clientContext.Clients.Group(groupId.ToString()).SendAsync("AddGroupMember", result.Value);
 
-            var group = await _roomService.GetOneAsync(groupId);
+            await _connections.AddConnectionToGroup(groupId.ToString(), userId.ToString(), _clientContext);
+
+            var group = await _roomService.GetWithMembersAsync(groupId);
             if (group != null)
             {
-                _ = _hubContext.Clients.User(userId.ToString()).SendAsync("JoinRoom", group);
+                _ = _clientContext.Clients.User(userId.ToString()).SendAsync("JoinRoom", group);
             }
+
             return HubResponse.Ok();
         }
         public async Task<HubResponse> RemoveGroupMember(int groupId, int removeUserId)
         {
-            var userId = int.Parse(Context.UserIdentifier!);      
-            var result = await _groupService.RemoveMemberAsync(userId,new GroupMemberParam
+            var userId = int.Parse(Context.UserIdentifier!);
+            var result = await _groupService.RemoveMemberAsync(userId, new MemberParam
             {
                 GroupId = groupId,
                 UserId = removeUserId
@@ -119,24 +112,44 @@ namespace ChatApp_Server.Hubs
                 return HubResponse.Fail(result.Errors);
             }
 
-            await RemoveConnectionFromGroup(groupId.ToString(), removeUserId.ToString(), _hubContext);
-            _ = _hubContext.Clients.User(removeUserId.ToString()).SendAsync("LeftRoom", groupId);
-            _ = _hubContext.Clients.GroupExcept(groupId.ToString(), removeUserId.ToString()).SendAsync("RemoveGroupMember", result.Value);
+            await _connections.RemoveConnectionFromGroup(groupId.ToString(), removeUserId.ToString(), _clientContext);
+
+            _ = _clientContext.Clients.User(removeUserId.ToString()).SendAsync("LeftRoom", groupId);
+            _ = _clientContext.Clients.GroupExcept(groupId.ToString(), removeUserId.ToString()).SendAsync("RemoveGroupMember", result.Value.RoomId, result.Value.UserId);
             return HubResponse.Ok();
         }
-       
+        public async Task<HubResponse> SetGroupOwner(MemberParam param)
+        {
+            var userId = int.Parse(Context.UserIdentifier!);
+
+            if (userId == param.UserId)
+            {
+                return HubResponse.Fail("Người dùng đã là chủ nhóm");
+            }
+
+            var result = await _groupService.SetGroupOwnerAsync(userId, param);
+            if (result.IsFailed)
+            {
+                return HubResponse.Fail(result.Errors);
+            }
+
+            _ = _clientContext.Clients.Group(param.GroupId.ToString()).SendAsync("ChangeGroupOwner", param.GroupId ,result.Value);
+            return HubResponse.Ok();
+        }
+
         public async Task<HubResponse> GetRooms()
         {
             var userId = int.Parse(Context.UserIdentifier!);
-            var rooms = await _roomService.GetAllByUserAsync(userId);
+            var rooms = await _roomService.GetAllAsync(userId);
 
             return HubResponse.Ok(rooms);
         }
+
         public async Task<HubResponse> UpdateCanRoomDisplay(int roomId, bool canDisplay)
         {
             var userId = int.Parse(Context.UserIdentifier!);
 
-            var result = await _roomService.UpdateCanDisplayRoom(roomId, userId, canDisplay);
+            var result = await _roomService.UpdateCanDisplayRoomAsync(roomId, userId, canDisplay);
             if (result.IsFailed)
             {
                 return HubResponse.Fail(result.Errors);
@@ -147,93 +160,77 @@ namespace ChatApp_Server.Hubs
         {
             var userId = int.Parse(Context.UserIdentifier!);
 
-            var room = await _roomService.GetOneByRoomAsync(roomId, userId);
-            if (room == null || room.RoomMemberInfos == null)
+            var room = await _roomService.GetAsync(roomId, userId);
+            if (room == null)
             {
-                return HubResponse.Fail("Room không tồn tại");
+                return HubResponse.Fail("Bạn không ở trong nhóm này");
             }
-         
-            var roomInfoOfUser = room.RoomMemberInfos.FirstOrDefault(info => info.UserId == userId);
-            if (roomInfoOfUser == null)
-            {
-                return HubResponse.Fail("User Ko có trong room này");
-            }
-            var pms = await _messageService.GetSeenAndUnseenAsync(roomId, roomInfoOfUser?.FirstUnseenMessageId);
-            
+
+            var pms = await _messageService.GetSomeMessagesAsync(roomId, userId);
+
             return HubResponse.Ok(pms);
         }
         public async Task<HubResponse> GetFirstMessage(int roomId)
         {
             var userId = int.Parse(Context.UserIdentifier!);
 
-            var room = await _roomService.GetOneByRoomAsync(roomId, userId);
+            var room = await _roomService.GetAsync(roomId, userId);
             if (room == null)
             {
-                return HubResponse.Fail("Room không tồn tại");
+                return HubResponse.Fail("Bạn không ở trong phòng này");
             }
-            var fMessageResult = await _messageService.GetFirstMessageAsync(roomId);
-            if (fMessageResult.IsFailed)
+
+            var firstMessage = await _messageService.GetFirstMessageAsync(roomId);
+            if (firstMessage == null)
             {
-                return HubResponse.Fail(fMessageResult.Errors[0].Message);
+                return HubResponse.Fail("Chưa có tin nhắn");
             }
-            return HubResponse.Ok(fMessageResult.Value);
+
+            return HubResponse.Ok(firstMessage);
         }
 
         public async Task<HubResponse> GetPreviousMessages(int roomId, long messageId, int numberMessages)
         {
             var userId = int.Parse(Context.UserIdentifier!);
 
-            var room = await _roomService.GetOneAsync(roomId);
+            var room = await _roomService.GetAsync(roomId, userId);
             if (room == null)
             {
-                return HubResponse.Fail("Room không tồn tại");
+                return HubResponse.Fail("Bạn không ở trong phòng này");
             }
-           
-            var pms = await _messageService.GetPreviousMessageAsync(room.Id, messageId, numberMessages);
+
+            var pms = await _messageService.GetPreviousMessagesAsync(room.Id, messageId, numberMessages);
             return HubResponse.Ok(pms);
         }
-        public async Task<HubResponse> GetNextMessages(int roomId, long messageId, int? numberMessages)
+        public async Task<HubResponse> GetNextMessages(int roomId, long messageId, int numberMessages)
         {
             var userId = int.Parse(Context.UserIdentifier!);
 
-            var room = await _roomService.GetOneByRoomAsync(roomId, userId);
+            var room = await _roomService.GetAsync(roomId, userId);
             if (room == null)
             {
-                return HubResponse.Fail("Room không tồn tại");
+                return HubResponse.Fail("Bạn không ở trong phòng này");
+
             }
-            var pms = await _messageService.GetNextMessageAsync(room.Id, messageId, numberMessages);
+            var pms = await _messageService.GetNextMessagesAsync(room.Id, messageId, numberMessages);
+
             return HubResponse.Ok(pms);
         }
 
-        public async Task AddConnectionToGroup(string groupname, string userId, IHubContext<ClientHub> hubContext)
+        public async Task<HubResponse> UpdateFirstUnseenMessage(long messageId)
         {
-            var connections = _connections.GetConnections(userId);
-            if (connections == null)
+            var userId = int.Parse(Context.UserIdentifier!);
+
+            var rmResult = await _roomService.UpdateFirstUnseenMessageAsync(messageId, userId);
+            if (rmResult.IsFailed)
             {
-                return;
+                return HubResponse.Fail(rmResult.Errors);
             }
 
-            List<Task> addToGroupTaskList = new List<Task>();
-            foreach (var connection in connections)
-            {
-                addToGroupTaskList.Add(hubContext.Groups.AddToGroupAsync(connection, groupname));
-            }
-            await Task.WhenAll(addToGroupTaskList);
-        }
-        public async Task RemoveConnectionFromGroup(string groupname, string userId, IHubContext<ClientHub> hubContext)
-        {
-            var connections = _connections.GetConnections(userId);
-            if (connections == null)
-            {
-                return;
-            }
+            var roomMember = await _roomService.GetRoomMember(new MemberParam { GroupId = rmResult.Value.RoomId , UserId = userId});
+            await _clientContext.Clients.Group(roomMember.RoomId.ToString()).SendAsync("UpdateFirstUnseenMessage", roomMember);
 
-            List<Task> addToGroupTaskList = new List<Task>();
-            foreach (var connection in connections)
-            {
-                addToGroupTaskList.Remove(hubContext.Groups.AddToGroupAsync(connection, groupname));
-            }
-            await Task.WhenAll(addToGroupTaskList);
+            return HubResponse.Ok();
         }
     }
 }

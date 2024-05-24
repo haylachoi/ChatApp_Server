@@ -16,7 +16,7 @@ namespace ChatApp_Server.Repositories
            Func<IQueryable<TEntity>, IIncludableQueryable<TEntity, object?>> includes = null!,
            int? skip = null,
            int? take = null);
-        Task<TEntity?> GetOne(IEnumerable<Expression<Func<TEntity, bool>>> filters = null!, Func<IQueryable<TEntity>, IIncludableQueryable<TEntity, object?>>? includes = null);
+        Task<TEntity?> GetOneAsync(IEnumerable<Expression<Func<TEntity, bool>>> filters = null!, Func<IQueryable<TEntity>, IIncludableQueryable<TEntity, object?>>? includes = null);
 
         Task<TEntity?> GetByIdAsync(TId id);
         void Insert(TEntity entity);
@@ -68,7 +68,7 @@ namespace ChatApp_Server.Repositories
 
             return await query.AsNoTracking().ToListAsync();
         }
-        public virtual async Task<TEntity?> GetOne(IEnumerable<Expression<Func<TEntity, bool>>> filters = null!, Func<IQueryable<TEntity>, IIncludableQueryable<TEntity, object?>>? includes = null)
+        public virtual async Task<TEntity?> GetOneAsync(IEnumerable<Expression<Func<TEntity, bool>>> filters = null!, Func<IQueryable<TEntity>, IIncludableQueryable<TEntity, object?>>? includes = null)
         {
             IQueryable<TEntity> query = _context.Set<TEntity>();
             if (filters != null && filters.Count() > 0)
@@ -79,7 +79,8 @@ namespace ChatApp_Server.Repositories
             {
                 query = includes(query);
             }
-            return await query.AsNoTracking().FirstOrDefaultAsync();
+            var entiry = await query.AsNoTracking().FirstOrDefaultAsync();
+            return entiry;
         }
         public virtual async Task<TEntity?> GetByIdAsync(TId id)
         {

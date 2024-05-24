@@ -1,4 +1,5 @@
-﻿using ChatApp_Server.DTOs;
+﻿using ChatApp_Server.Criteria;
+using ChatApp_Server.DTOs;
 using ChatApp_Server.Helper;
 using ChatApp_Server.Models;
 using ChatApp_Server.Params;
@@ -13,106 +14,81 @@ namespace ChatApp_Server.Services
 {
     public interface IRoomService
     {
-        Task<IEnumerable<RoomDto>> GetAllByUserAsync(int userId);
+        Task<RoomDto?> GetAsync(int roomId, int? userId = null);
+        Task<RoomDto?> GetWithMembersAsync(int roomId, int? userId = null);
+        Task<IEnumerable<RoomDto>> GetAllAsync(int userId);
         Task<Result<RoomDto>> CreateRoomAsync(RoomParam param);
-        Task<RoomDto?> GetOneAsync(int roomId);
-        Task<RoomDto?> GetOneByRoomAsync(int roomId, int? userId);    
-        Task<IEnumerable<RoomMemberInfoDto>> GetAllRoomOfMembersAsync(int roomId);
-        Task<MessageDto> GetLastUnseenMessage(int roomId, int userId);
-        Task<Result> UpdateCanDisplayRoom(int roomId, int userId, bool canDisplay);
-        
-
+        //Task<IEnumerable<RoomMemberInfoDto>> GetAllRoomOfMembersAsync(int roomId);
+        Task<RoomMemberInfoDto> GetRoomMember(MemberParam param);     
+        Task<Result<RoomMemberInfoDto>> UpdateFirstUnseenMessageAsync(long messageId, int userId);
+        Task<Result> UpdateCanDisplayRoomAsync(int roomId, int userId, bool canDisplay);
     }
-    public class RoomService: IRoomService
+    public class RoomService(IRoomRepository _roomRepo, IRoomMemberInfoRepository _memberRepo) : IRoomService
     {
-        private readonly IRoomRepository roomRepository;
-        private readonly IRoomMemberInfoRepository roomMemberInfoRepository;
-
-        public RoomService(IRoomRepository roomRepository, IRoomMemberInfoRepository roomMemberInfoRepository) 
+        public async Task<RoomDto?> GetAsync(int roomId, int? userId = null)
         {
-            this.roomRepository = roomRepository;
-            this.roomMemberInfoRepository = roomMemberInfoRepository;
+            var criteria = new RoomCriteria { Id = roomId };
+            if (userId != null)
+            {
+                criteria.MemberId = userId;
+            }
+            var room = await _roomRepo.GetAsync(criteria);
+            return room.Adapt<RoomDto>();
         }
-
-        public async Task<IEnumerable<RoomDto>> GetAllAsync()
-        {        
-         
-            List<Expression<Func<Room, bool>>> filters = new List<Expression<Func<Room, bool>>>();
-            Func<IQueryable<Room>, IIncludableQueryable<Room, object>>? includes = query => query
-                .Include(r => r.GroupInfo).ThenInclude(gi => gi!.GroupOnwer)
-                .Include(r => r.RoomMemberInfos).ThenInclude(rm => rm.LastUnseenMessage)
-                .Include(r => r.RoomMemberInfos).ThenInclude(rm => rm.User);          
-            
-            var prs = await roomRepository.GetAllAsync(filters, includes: includes);
-            var prDtos = prs.Adapt<IEnumerable<RoomDto>>().ToArray();
-          
-            return prDtos;
-        }
-
-        public async Task<MessageDto> GetLastUnseenMessage(int roomId, int userId)
+        public async Task<RoomDto?> GetWithMembersAsync(int roomId, int? userId = null)
         {
-            var message = await roomRepository.GetLastUnseenMessage(roomId, userId);
-            var dto = message.Adapt<MessageDto>();
-            return dto;
-        }
-
-        public async Task<RoomDto?> GetOneByRoomAsync(int roomId, int? userId = null)
-        {
-            Func<IQueryable<Room>, IIncludableQueryable<Room, object>> includes = query => query           
-                .Include(pm => pm.RoomMemberInfos);             
-                
-            var prs = await roomRepository.GetAllAsync([pr => pr.Id == roomId && pr.RoomMemberInfos.Any(info => info.UserId == userId)], includes: includes);
-            var pr = prs.FirstOrDefault();
-            var prDto = pr.Adapt<RoomDto>();          
-                    
-            return prDto;
-        }
-
-        public async Task<RoomDto?> GetOneAsync(int roomId)
-        {
-            var room = await roomRepository.GetOneWithInfoAsync(roomId);
+            var criteria = RoomCriteria.CreateWithAllInclude(roomId);
+            if (userId != null)
+            {
+                criteria.MemberId = userId;
+            }
+            var room = await _roomRepo.GetAsync(criteria);
             return room.Adapt<RoomDto>();
         }
 
         public async Task<Result<RoomDto>> CreateRoomAsync(RoomParam param)
+        => await ExceptionHandler.HandleLazy<RoomDto>(async () =>
         {
-            return await ExceptionHandler.HandleLazy<RoomDto>(async () =>
-            {
-                var room = param.Adapt<Room>();
-                roomRepository.Insert(room);
-                await roomRepository.SaveAsync();
-                var id = room.Id;
-                room = await roomRepository.GetOneWithInfoAsync(id);
-                return room.Adapt<RoomDto>();
-            });
+            var room = param.Adapt<Room>();
+            _roomRepo.Insert(room);
+            await _roomRepo.SaveAsync();
+              
+            room = await _roomRepo.GetAsync(RoomCriteria.CreateWithAllInclude(room.Id));
+            return room.Adapt<RoomDto>();
+        });       
+
+        public async Task<Result> UpdateCanDisplayRoomAsync(int roomId, int userId, bool canDisplay)
+        => await ExceptionHandler.HandleLazy(async () =>
+        {
+            _memberRepo.Update(new RoomMemberInfo { UserId = userId, RoomId = roomId, CanDisplayRoom = canDisplay });
+            await _memberRepo.SaveAsync();
+            return Result.Ok();
+        });
+        
+
+        //public async Task<IEnumerable<RoomMemberInfoDto>> GetAllRoomOfMembersAsync(int userId)
+        //{
+        //    var members = await _memberRepo.GetAllAsync(new MembersCriteria { UserId = userId});
+        //    return members.Adapt<IEnumerable<RoomMemberInfoDto>>();
+        //}
+
+        public async Task<Result<RoomMemberInfoDto>> UpdateFirstUnseenMessageAsync(long messageId, int userId)
+         => await ExceptionHandler.HandleLazy<RoomMemberInfoDto>(async () =>
+         {
+             var rm = await _memberRepo.UpdateFirstUnseenMessage(messageId, userId);
+             return rm.Adapt<RoomMemberInfoDto>();
+         });
+
+        public async Task<RoomMemberInfoDto> GetRoomMember(MemberParam param)
+        {
+            var member = await _memberRepo.GetAsync(new MemberCriteria { RoomId = param.GroupId, UserId = param.UserId, IncludeUserInfo = true });
+            return member.Adapt<RoomMemberInfoDto>();
         }
 
-        public async Task<IEnumerable<RoomDto>> GetAllByUserAsync(int userId)
+        public async Task<IEnumerable<RoomDto>> GetAllAsync(int userId)
         {
-            var rooms = await roomRepository.GetAllAsync(
-                [r => r.RoomMemberInfos.Any(info => info.UserId == userId)], 
-                includes: query => query
-                    .Include(r => r.GroupInfo).ThenInclude(gi => gi!.GroupOnwer)
-                    .Include(r => r.RoomMemberInfos).ThenInclude(info => info.LastUnseenMessage)
-                    .Include(r => r.RoomMemberInfos).ThenInclude(info => info.User)
-            );       
+            var rooms = await _roomRepo.GetAllAsync(new RoomsCriteria { MemberId =  userId, IncludeMemberInfo = true });
             return rooms.Adapt<IEnumerable<RoomDto>>();
-        }
-
-        public async Task<Result> UpdateCanDisplayRoom(int roomId, int userId, bool canDisplay)
-        {
-            return await ExceptionHandler.HandleLazy(async () =>
-            {
-                roomMemberInfoRepository.Update(new RoomMemberInfo { UserId = userId, RoomId = roomId, CanDisplayRoom = canDisplay });
-                await roomMemberInfoRepository.SaveAsync();
-                return Result.Ok();
-            });
-        }
-
-        public async Task<IEnumerable<RoomMemberInfoDto>> GetAllRoomOfMembersAsync(int userId)
-        {
-            var members = await roomMemberInfoRepository.GetAllAsync([rm => rm.UserId == userId]);
-            return members.Adapt<IEnumerable<RoomMemberInfoDto>>();
         }
     }
 }

@@ -17,10 +17,6 @@ public partial class Room
 
     public bool IsGroup { get; set; }
 
-    public string? Avatar { get; set; }
-
-    public string? Name { get; set; }
-
     [ForeignKey("FirstMessageId")]
     [InverseProperty("RoomFirstMessages")]
     public virtual Message? FirstMessage { get; set; }

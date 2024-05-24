@@ -26,7 +26,7 @@ namespace ChatApp_Server.Repositories
                 .Where(u => u.Fullname.Contains(searchTerm) && !_context.RoomMemberInfos
                     .Any(rm => rm.UserId == u.Id && excludedUserIds.Contains(rm.RoomId)));
 
-            return await query.ToListAsync();
+            return await query.Take(10).ToListAsync();
         }
         public override void Delete(int id)
         {

@@ -18,7 +18,9 @@ public partial class MessageDetail
 
     public int? ReactionId { get; set; }
 
-    [ForeignKey("MessageId")]
+    public int RoomId { get; set; }
+
+    [ForeignKey("MessageId, RoomId")]
     [InverseProperty("MessageDetails")]
     public virtual Message Message { get; set; } = null!;
 

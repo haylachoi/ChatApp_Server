@@ -13,10 +13,10 @@ namespace ChatApp_Server.Configs
             TypeAdapterConfig<GroupParam, Room>
                  .NewConfig()
                  .Map(dest => dest.IsGroup, src => true)
-                 .Map(dest => dest.GroupInfo, src  => new GroupInfo { Avatar = src.Avatar, GroupOnwerId = src.GroupOwnerId, Name = src.Name })
+                 .Map(dest => dest.GroupInfo, src  => new GroupInfo { Avatar = src.Avatar, GroupOwnerId = src.GroupOwnerId, Name = src.Name })
                  .Map(dest => dest.RoomMemberInfos, src => src.userIds == null ? new List<RoomMemberInfo>() :src.userIds.Select(id => new RoomMemberInfo { UserId = id, CanDisplayRoom = true}));
 
-            TypeAdapterConfig<GroupMemberParam, RoomMemberInfo>
+            TypeAdapterConfig<MemberParam, RoomMemberInfo>
                 .NewConfig()
                 .Map(dest => dest.CanDisplayRoom, src => true)
                 .Map(dest => dest.RoomId, src => src.GroupId);
@@ -28,7 +28,7 @@ namespace ChatApp_Server.Configs
                     src => new []
                     {
                         new RoomMemberInfo { UserId = src.SenderId, CanDisplayRoom = true},
-                        new RoomMemberInfo { UserId = src.ReceiverId, CanDisplayRoom = false}
+                        new RoomMemberInfo { UserId = src.ReceiverId, CanDisplayRoom = true}
                     });
             TypeAdapterConfig<UserParam, User>
                 .NewConfig()

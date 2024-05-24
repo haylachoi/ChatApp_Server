@@ -16,13 +16,13 @@ public partial class GroupInfo
 
     public string? Avatar { get; set; }
 
-    public int GroupOnwerId { get; set; }
+    public int GroupOwnerId { get; set; }
 
     [ForeignKey("GroupId")]
     [InverseProperty("GroupInfo")]
     public virtual Room Group { get; set; } = null!;
 
-    [ForeignKey("GroupOnwerId")]
+    [ForeignKey("GroupOwnerId")]
     [InverseProperty("GroupInfos")]
-    public virtual User GroupOnwer { get; set; } = null!;
+    public virtual User GroupOwner { get; set; } = null!;
 }

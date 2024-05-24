@@ -19,8 +19,6 @@ public partial class ChatAppContext : DbContext
 
     public virtual DbSet<Friendship> Friendships { get; set; }
 
-    public virtual DbSet<Group> Groups { get; set; }
-
     public virtual DbSet<GroupInfo> GroupInfos { get; set; }
 
     public virtual DbSet<Message> Messages { get; set; }
@@ -32,6 +30,8 @@ public partial class ChatAppContext : DbContext
     public virtual DbSet<RefreshToken> RefreshTokens { get; set; }
 
     public virtual DbSet<Room> Rooms { get; set; }
+
+    public virtual DbSet<RoomId> RoomIds { get; set; }
 
     public virtual DbSet<RoomMemberInfo> RoomMemberInfos { get; set; }
 
@@ -75,18 +75,6 @@ public partial class ChatAppContext : DbContext
                 .HasConstraintName("fk_fs_user_sender");
         });
 
-        modelBuilder.Entity<Group>(entity =>
-        {
-            entity.HasKey(e => e.GroupId).HasName("groups_pkey");
-
-            entity.Property(e => e.GroupId).UseIdentityAlwaysColumn();
-            entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-            entity.HasOne(d => d.GroupOwner).WithMany(p => p.Groups)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("fk_groups_users_ownerid");
-        });
-
         modelBuilder.Entity<GroupInfo>(entity =>
         {
             entity.HasKey(e => e.GroupId).HasName("GroupInfo_pkey");
@@ -95,7 +83,7 @@ public partial class ChatAppContext : DbContext
 
             entity.HasOne(d => d.Group).WithOne(p => p.GroupInfo).HasConstraintName("fk_gi_room");
 
-            entity.HasOne(d => d.GroupOnwer).WithMany(p => p.GroupInfos)
+            entity.HasOne(d => d.GroupOwner).WithMany(p => p.GroupInfos)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("fk_gi_user");
         });
@@ -125,11 +113,14 @@ public partial class ChatAppContext : DbContext
 
             entity.Property(e => e.Id).UseIdentityAlwaysColumn();
 
-            entity.HasOne(d => d.Message).WithMany(p => p.MessageDetails).HasConstraintName("fk_md_messages");
-
             entity.HasOne(d => d.Reaction).WithMany(p => p.MessageDetails).HasConstraintName("fk_md_reactions");
 
             entity.HasOne(d => d.User).WithMany(p => p.MessageDetails).HasConstraintName("fk_md_users");
+
+            entity.HasOne(d => d.Message).WithMany(p => p.MessageDetails)
+                .HasPrincipalKey(p => new { p.Id, p.RoomId })
+                .HasForeignKey(d => new { d.MessageId, d.RoomId })
+                .HasConstraintName("fk_md_messages");
         });
 
         modelBuilder.Entity<Reaction>(entity =>
@@ -174,9 +165,7 @@ public partial class ChatAppContext : DbContext
             entity.Property(e => e.CanShowNofitication).HasDefaultValue(true);
             entity.Property(e => e.UnseenMessageCount).HasDefaultValue(0L);
 
-            entity.HasOne(d => d.FirstUnseenMessage).WithMany(p => p.RoomMemberInfoFirstUnseenMessages).HasConstraintName("fk_prinfo_messages_first_unnseen");
-
-            entity.HasOne(d => d.LastUnseenMessage).WithMany(p => p.RoomMemberInfoLastUnseenMessages).HasConstraintName("fk_prinfo_messages_last_unnseen");
+            entity.HasOne(d => d.FirstUnseenMessage).WithMany(p => p.RoomMemberInfos).HasConstraintName("fk_prinfo_messages_first_unseen");
 
             entity.HasOne(d => d.Room).WithMany(p => p.RoomMemberInfos).HasConstraintName("fk_prinfo_room");
 

@@ -13,7 +13,7 @@ namespace ChatApp_Server.DTOs
         public string Name { get; set; } = null!;
 
         public string? Avatar { get; set; }
-        public int GroupOnwerId { get; set; }
-        public UserDto GroupOnwer { get; set; } = null!;
+        public int GroupOwnerId { get; set; }
+        public UserDto GroupOwner { get; set; } = null!;
     }
 }

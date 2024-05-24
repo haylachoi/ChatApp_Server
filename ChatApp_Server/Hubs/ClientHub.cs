@@ -8,7 +8,7 @@ using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
 namespace ChatApp_Server.Hubs
 {
     [Authorize]
-    public class ClientHub(IRoomService _roomService, ConnectionMapping<string> _connections) : Hub
+    public class ClientHub(IUserService _userService, ConnectionMapping<string> _connections) : Hub
     {
         public override async Task OnConnectedAsync()
         {
@@ -24,7 +24,7 @@ namespace ChatApp_Server.Hubs
             {
                 return;
             }
-            var groupMembers = await _roomService.GetAllRoomOfMembersAsync(userId);
+            var groupMembers = await _userService.GetAllRoomMembers(userId);
             List<Task> addToGroupTaskList = new List<Task>();
             foreach (var gm in groupMembers)
             {

@@ -43,11 +43,8 @@ public partial class User
     [InverseProperty("Sender")]
     public virtual ICollection<Friendship> FriendshipSenders { get; set; } = new List<Friendship>();
 
-    [InverseProperty("GroupOnwer")]
-    public virtual ICollection<GroupInfo> GroupInfos { get; set; } = new List<GroupInfo>();
-
     [InverseProperty("GroupOwner")]
-    public virtual ICollection<Group> Groups { get; set; } = new List<Group>();
+    public virtual ICollection<GroupInfo> GroupInfos { get; set; } = new List<GroupInfo>();
 
     [InverseProperty("User")]
     public virtual ICollection<MessageDetail> MessageDetails { get; set; } = new List<MessageDetail>();

@@ -29,7 +29,7 @@ namespace ChatApp_Server.Controllers
             }
             var files = param.Files;
             var roomId = param.RoomId;
-            var room = await roomService.GetOneAsync(roomId);
+            var room = await roomService.GetAsync(roomId);
             if (room == null)
             {
                 return BadRequest();

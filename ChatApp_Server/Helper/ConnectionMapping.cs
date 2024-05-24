@@ -1,4 +1,7 @@
-﻿namespace ChatApp_Server.Helper
+﻿using ChatApp_Server.Hubs;
+using Microsoft.AspNetCore.SignalR;
+
+namespace ChatApp_Server.Helper
 {
     public class ConnectionMapping<T> where T: notnull
     {
@@ -62,6 +65,36 @@
                     }
                 }
             }
+        }
+        public async Task AddConnectionToGroup(string groupname, T userId, IHubContext<ClientHub> hubContext)
+        {
+            var connections = GetConnections(userId);
+            if (connections == null)
+            {
+                return;
+            }
+
+            List<Task> addToGroupTaskList = new List<Task>();
+            foreach (var connection in connections)
+            {
+                addToGroupTaskList.Add(hubContext.Groups.AddToGroupAsync(connection, groupname));
+            }
+            await Task.WhenAll(addToGroupTaskList);
+        }
+        public async Task RemoveConnectionFromGroup(string groupname, T userId, IHubContext<ClientHub> hubContext)
+        {
+            var connections = GetConnections(userId);
+            if (connections == null)
+            {
+                return;
+            }
+
+            List<Task> addToGroupTaskList = new List<Task>();
+            foreach (var connection in connections)
+            {
+                addToGroupTaskList.Remove(hubContext.Groups.AddToGroupAsync(connection, groupname));
+            }
+            await Task.WhenAll(addToGroupTaskList);
         }
     }
 }

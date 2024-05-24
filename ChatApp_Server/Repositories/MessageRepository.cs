@@ -1,21 +1,28 @@
 ﻿using ChatApp_Server.Models;
-using Google.Api;
 using Microsoft.EntityFrameworkCore;
+using System.Linq;
 
 namespace ChatApp_Server.Repositories
 {
     public interface IMessageRepository:IBaseRepository<Message, long>
     {
-        Task<IEnumerable<Message>> GetSeenAndUnseenAsync(int roomId, long? firstUnseenMessageId, int numberMessages);
-        //Task<Message?> UpdateReactionMessage(long messageId, int receiverId, int? reactionId);
+        Task<IEnumerable<Message>> GetSeenAndUnseenAsync(int roomId, int userId, int numberMessages);
+        Task<IEnumerable<Message>> GetPreviousMessagesAsync(int roomId, long messageId, int numberMessages);
+        Task<IEnumerable<Message>> GetNextMessagesAsync(int roomId, long messageId, int numberMessages);
+
     }
     public class MessageRepository : BaseRepository<Message, long>, IMessageRepository
     {
         public MessageRepository(ChatAppContext context) : base(context)
         {
         }
-        public async Task<IEnumerable<Message>> GetSeenAndUnseenAsync(int roomId, long? firstUnseenMessageId, int numberMessages)
+        public async Task<IEnumerable<Message>> GetSeenAndUnseenAsync(int roomId,int userId, int numberMessages)
         {
+            var member = 
+                await _context.RoomMemberInfos.Where(m => m.RoomId == roomId && m.UserId == userId).FirstOrDefaultAsync() 
+                ?? throw new Exception("Bạn không ở trong nhóm");
+
+            var firstUnseenMessageId = member.FirstUnseenMessageId;
             if (firstUnseenMessageId == null)
             {
                 return _context.Messages
@@ -37,12 +44,18 @@ namespace ChatApp_Server.Repositories
             return messages;
          }
 
-        //public async Task<Message?> UpdateReactionMessage(long messageId, int receiverId, int? reactionId)
-        //{
-        //    var result = await _context.Messages.FromSql($"SELECT * FROM func_pm_update_reaction({messageId},{receiverId} ,{reactionId})")
-        //        .FirstOrDefaultAsync();
+        public async Task<IEnumerable<Message>> GetPreviousMessagesAsync(int roomId, long messageId, int numberMessages)
+        {
+            var query = _context.Messages.Where(m => m.RoomId == roomId && m.Id < messageId).OrderByDescending(m => m.Id).Take(numberMessages);
+            var messages = await query.ToListAsync();
 
-        //    return result;
-        //}
+            return messages.OrderBy(m => m.Id);
+        }
+        public async Task<IEnumerable<Message>> GetNextMessagesAsync(int roomId, long messageId, int numberMessages)
+        {
+            var query = _context.Messages.Where(m => m.RoomId == roomId && m.Id > messageId).OrderBy(m => m.Id).Take(numberMessages);
+
+            return await query.ToListAsync();
+        }
     }
 }

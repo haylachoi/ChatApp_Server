@@ -1,4 +1,5 @@
-﻿using ChatApp_Server.DTOs;
+﻿using ChatApp_Server.Criteria;
+using ChatApp_Server.DTOs;
 using ChatApp_Server.Helper;
 using ChatApp_Server.Models;
 using ChatApp_Server.Params;
@@ -15,83 +16,122 @@ namespace ChatApp_Server.Services
     {
         Task<RoomDto> GetByIdAsync(int groupId);
         Task<Result<RoomDto>> CreateGroupAsync(GroupParam param);
-        Task<Result<RoomDto>> DeleteGroupAsync(GroupMemberParam param);
-        Task<Result<RoomMemberInfoDto>> AddMemberAsync(GroupMemberParam param);
-        Task<Result<RoomMemberInfoDto>> RemoveMemberAsync(int userId, GroupMemberParam param);
+        Task<Result<RoomDto>> DeleteGroupAsync(MemberParam param);
+        Task<Result<RoomMemberInfoDto>> AddMemberAsync(MemberParam param);
+        Task<Result<RoomMemberInfoDto>> RemoveMemberAsync(int userId, MemberParam param);
+        Task<Result<UserDto>> SetGroupOwnerAsync(int currentGroupOwnerId, MemberParam param);
+        Task<Result<RoomMemberInfoDto>> LeaveGroupAsync(MemberParam param);
     }
     public class GroupService(       
-        IRoomRepository roomRepository, 
-        IRoomMemberInfoRepository roomMemberInfoRepository) : IGroupService
+        IUserRepository _userRepo,
+        IRoomRepository _roomRepo, 
+        IRoomMemberInfoRepository _memberRepo) : IGroupService
     {
-        public async Task<Result<RoomMemberInfoDto>> AddMemberAsync(GroupMemberParam param)
-        {
-            return await ExceptionHandler.HandleLazy<RoomMemberInfoDto>(async () =>
+        public async Task<Result<RoomMemberInfoDto>> AddMemberAsync(MemberParam param)
+        => await ExceptionHandler.HandleLazy<RoomMemberInfoDto>(async () =>
             {
-                var entity = param.Adapt<RoomMemberInfo>();
-                roomMemberInfoRepository.Insert(entity);
-                await roomMemberInfoRepository.SaveAsync();
-                var member = await roomMemberInfoRepository.GetOne([rm => rm.Id == entity.Id], query => query.Include(rm => rm.User));
-                return member.Adapt<RoomMemberInfoDto>();
-            });
-        }
+            var member = param.Adapt<RoomMemberInfo>();
+            _memberRepo.Insert(member);
+            await _memberRepo.SaveAsync();
+            member = await _memberRepo.GetAsync(new MemberCriteria { Id = member.Id, IncludeUserInfo = true });
+            return member.Adapt<RoomMemberInfoDto>();
+        });
 
         public async Task<Result<RoomDto>> CreateGroupAsync(GroupParam param)
-        {
-            return await ExceptionHandler.HandleLazy<RoomDto>(async () =>
+        => await ExceptionHandler.HandleLazy<RoomDto>(async () =>
             {
-                var entity = param.Adapt<Room>();
-                roomRepository.Insert(entity);
-                await roomRepository.SaveAsync();
-                return entity.Adapt<RoomDto>();
-            });
-        }
+            var entity = param.Adapt<Room>();
+            _roomRepo.Insert(entity);
+            await _roomRepo.SaveAsync();
+            return entity.Adapt<RoomDto>();
+        });
 
-        public async Task<Result<RoomDto>> DeleteGroupAsync(GroupMemberParam param)
+        public async Task<Result<RoomDto>> DeleteGroupAsync(MemberParam param)
         => await ExceptionHandler.HandleLazy<RoomDto>(async () =>
         {
-            var group = await roomRepository.GetOne([r => r.Id == param.GroupId], query => query.Include(r => r.GroupInfo).ThenInclude(gi => gi!.GroupOnwer).Include(r => r.RoomMemberInfos).ThenInclude(info => info.LastUnseenMessage));
+            var group = await _roomRepo.GetAsync(new RoomCriteria { Id = param.GroupId});
+
             if (group == null)
             {
                 return Result.Fail("Group không tồn tại");
             }
-            if (group.GroupInfo == null || group.GroupInfo.GroupOnwerId != param.UserId)
+            if (group.GroupInfo == null || group.GroupInfo.GroupOwnerId != param.UserId)
             {
                 return Result.Fail("Bạn không có quyền xóa group");
             }
-            roomRepository.Delete(group);
-            await roomRepository.SaveAsync();
+            _roomRepo.Delete(group);
+            await _roomRepo.SaveAsync();
             return group.Adapt<RoomDto>();
         });
 
         public async Task<RoomDto> GetByIdAsync(int groupId)
         {
-            var group = await roomRepository.GetOne([r => r.Id == groupId], query => query.Include(r => r.GroupInfo).ThenInclude(gi => gi!.GroupOnwer).Include(r => r.RoomMemberInfos).ThenInclude(info => info.LastUnseenMessage));
+            var group = await _roomRepo.GetAsync(
+                new RoomCriteria
+                {
+                    Id = groupId
+                });
+
             return group.Adapt<RoomDto>();
         }
 
-        public async Task<Result<RoomMemberInfoDto>> RemoveMemberAsync(int userId, GroupMemberParam param)
+        public async Task<Result<RoomMemberInfoDto>> LeaveGroupAsync(MemberParam param)
+        => await ExceptionHandler.HandleLazy<RoomMemberInfoDto>(async () =>
         {
-            // todo: check permission
-            var group = await roomRepository.GetOne([r => r.Id == param.GroupId], query => query.Include(r => r.GroupInfo));
+            var member = await _memberRepo.GetAsync(new MemberCriteria { RoomId = param.GroupId, UserId = param.UserId });
+            if (member == null)
+            {
+                return Result.Fail("Thành viên không ở trong nhóm hoặc đang làm chủ nhóm");
+            }
+
+            _memberRepo.Delete(member);
+            await _memberRepo.SaveAsync();
+            return member.Adapt<RoomMemberInfoDto>();
+        });
+
+        public async Task<Result<RoomMemberInfoDto>> RemoveMemberAsync(int userId, MemberParam param)
+        => await ExceptionHandler.HandleLazy<RoomMemberInfoDto>(async () =>
+        {
+            var member = await _memberRepo.GetAsync(new MemberCriteria { UserId = param.UserId, RoomId = param.GroupId, OwnerId = userId, HasOwner = true });
+            if (member == null)
+            {
+                return Result.Fail("Thành viên không có trong nhóm hoặc bạn không có quyền kích thành viên");
+            }
+            _memberRepo.Delete(member);
+            await _memberRepo.SaveAsync();
+            return member.Adapt<RoomMemberInfoDto>();             
+        });
+      
+
+        public async Task<Result<UserDto>> SetGroupOwnerAsync(int currentGroupOwnerId, MemberParam param)
+        => await ExceptionHandler.HandleLazy<UserDto>(async () =>
+        {         
+            if (currentGroupOwnerId == param.UserId)
+            {
+                return Result.Fail("Người dùng đã là chủ nhóm");
+            }
+
+            var group = await _roomRepo.GetAsync(new RoomCriteria { Id = param.GroupId, OwnerId = currentGroupOwnerId, MemberId = param.UserId });
             if (group == null)
             {
-                return Result.Fail("Group không tồn tại");
+                return Result.Fail("Người dùng ko phải là thành viên của nhóm hoặc bạn không có quyền thay đổi chủ nhóm");
             }
-            if (group.GroupInfo == null || group.GroupInfo.GroupOnwerId != userId)
+            if (group.GroupInfo == null)
             {
-                return Result.Fail("Bạn không có quyền kích thành viên group");
+                return Result.Fail("Có lỗi xảy ra");
             }
-            var memberInfo = await roomMemberInfoRepository.GetOne([r => r.UserId == param.UserId && r.RoomId == param.GroupId]);
-            if (memberInfo == null)
-            {
-                return Result.Fail("Thành viên không có trong nhóm");
+
+            group.GroupInfo.GroupOwnerId = param.UserId;
+            group.GroupInfo.GroupOwner = null!;
+
+            _roomRepo.Update(group);
+            await _roomRepo.SaveAsync();
+
+            var user = await _userRepo.GetByIdAsync(group.GroupInfo.GroupOwnerId);
+            if (user == null) {
+                return Result.Fail("Người dùng không tồn tại");
             }
-            return await ExceptionHandler.HandleLazy<RoomMemberInfoDto>(async () =>
-            {
-                roomMemberInfoRepository.Delete(memberInfo);
-                await roomMemberInfoRepository.SaveAsync();
-                return memberInfo.Adapt<RoomMemberInfoDto>();             
-            });
-        }
+            return user.Adapt<UserDto>();
+        });
     }
 }
