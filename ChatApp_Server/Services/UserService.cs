@@ -14,11 +14,10 @@ namespace ChatApp_Server.Services
     public interface IUserService
     {
         Task<Result<ProfileDto>> CreateUser(UserParam param);
-        //Task<Result<UserDto>> ChangeAvatarAsync(int userId, string imgUrl);      
+        Task<Result<UserDto>> ChangeAvatarAsync(int userId, string imgUrl);      
         Task<UserDto?> GetByIdAsync(int userId);
         Task<ProfileDto?> GetProfileAsync(int userId);
         Task<Result<ProfileDto>> ChangeProfileAsync(int userId, JsonPatchDocument<ProfileDto> patchDoc);
-        Task<Result> UpdateConnectionStatus(int id, bool isOnline);
         Task<IEnumerable<UserDto>> SearchUserNotInRoom(int roomId, string searchTerm);
         Task<IEnumerable<UserDto>> SearchUser(string searchTerm, int userId);
         Task<IEnumerable<RoomMemberInfoDto>> GetAllRoomMembers(int userId);
@@ -41,30 +40,16 @@ namespace ChatApp_Server.Services
             return Result.Ok(user.Adapt<UserDto>());
         });
 
-        public async Task<Result> UpdateConnectionStatus(int id, bool isOnline)
-        => await ExceptionHandler.HandleLazy(async () =>
-        {
-            var user = await _userRepo.GetByIdAsync(id);
-            if (user == null)
-            {
-                return Result.Fail("User không tồ tại");
-            }
-            user.IsOnline = isOnline;
-
-            await _userRepo.SaveAsync();
-            return Result.Ok();
-        });
-
         public async Task<IEnumerable<UserDto>> SearchUserNotInRoom(int roomId, string searchTerm)
         {
-            var users = await _userRepo.GetAllAsync([u => u.Fullname.Contains(searchTerm), u => !u.RoomMemberInfos.Any(info => info.RoomId == roomId)], take: 10);
+            var users = await _userRepo.SearchUserNotInRoom(roomId, searchTerm);
 
             return users.Adapt<IEnumerable<UserDto>>();
         }
 
         public async Task<IEnumerable<UserDto>> SearchUser(string searchTerm, int userId)
         {
-            var users = await _userRepo.SearchUser(searchTerm, userId);
+            var users = await _userRepo.SearchUsersNotInAllPrivateRooms(searchTerm, userId);
             return users.Adapt<IEnumerable<UserDto>>();
         }
 

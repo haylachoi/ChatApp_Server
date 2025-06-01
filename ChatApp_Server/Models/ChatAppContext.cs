@@ -94,9 +94,9 @@ public partial class ChatAppContext : DbContext
 
             entity.Property(e => e.Id).UseIdentityAlwaysColumn();
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
-            entity.Property(e => e.IsBlocked).HasDefaultValue(false);
             entity.Property(e => e.IsImage).HasDefaultValue(false);
-            entity.Property(e => e.IsReaded).HasDefaultValue(false);
+
+            entity.HasOne(d => d.Quote).WithMany(p => p.InverseQuote).HasConstraintName("fk_message_message_quote");
 
             entity.HasOne(d => d.Room).WithMany(p => p.Messages)
                 .OnDelete(DeleteBehavior.ClientSetNull)

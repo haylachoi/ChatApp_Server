@@ -1,14 +1,17 @@
 ﻿using ChatApp_Server.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace ChatApp_Server.Repositories
 {
-    public interface IReactionRepository: IBaseRepository<Reaction, int>
+    public interface IReactionRepository
     {
+        Task<IEnumerable<Reaction>> GetAllAsync();
     }
-    public class ReactionRepository : BaseRepository<Reaction, int>, IReactionRepository
+    public class ReactionRepository(ChatAppContext _context) : IReactionRepository
     {
-        public ReactionRepository(ChatAppContext context) : base(context)
+        public async Task<IEnumerable<Reaction>> GetAllAsync()
         {
+            return await _context.Reactions.OrderBy(r => r.Id).AsNoTracking().ToListAsync();
         }
     }
 }

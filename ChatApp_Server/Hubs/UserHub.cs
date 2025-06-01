@@ -9,26 +9,15 @@ using Microsoft.AspNetCore.SignalR;
 namespace ChatApp_Server.Hubs
 {
     [Authorize]
-    public class UserHub(IUserService userService, IReactionService reactionService, IFriendshipService friendshipService) : Hub
-    {
-        //private readonly IUserService userService;
-        //private readonly IReactionService reactionService;
-        //private readonly IFriendshipService _friendshipService;
-
-        //public UserHub(IUserService userService, IReactionService reactionService, IFriendshipService friendshipService)
-        //{
-        //    this.userService = userService;
-        //    this.reactionService = reactionService;
-        //    this._friendshipService = friendshipService;
-        //}
+    public class UserHub(IUserService userService, IReactionService reactionService) : Hub
+    {    
         public async Task<HubResponse> ChangeProfile(JsonPatchDocument<ProfileDto> patchDoc)
         {
             var userId = int.Parse(Context.UserIdentifier!);
             var result = await userService.ChangeProfileAsync(userId, patchDoc);
             if (result.IsFailed)
-            {
                 return HubResponse.Fail(result.Errors);
-            }
+            
             return HubResponse.Ok(result.Value);
         }
         public async Task<HubResponse> SearchUser(string searchTerm)
@@ -40,7 +29,6 @@ namespace ChatApp_Server.Hubs
         }
         public async Task<HubResponse> SearchUserNotInRoom(int roomId, string searchTerm)
         {
-            var userId = int.Parse(Context.UserIdentifier!);
             var users = await userService.SearchUserNotInRoom(roomId, searchTerm);
             return HubResponse.Ok(users);
         }
@@ -108,16 +96,6 @@ namespace ChatApp_Server.Hubs
         //        return;
         //    }
         //    await Clients.Caller.SendAsync("CancelFriendRequest", HubResponse.Ok());
-        //}
-        //public override async Task OnConnectedAsync()
-        //{
-        //    var user = await userService.GetByIdAsync(int.Parse(Context.UserIdentifier!));
-        //    await Clients.All.SendAsync("OnConnected", user);
-        //}
-        //public override async Task OnDisconnectedAsync(Exception? exception)
-        //{
-        //    await Clients.All.SendAsync("OnDisconnected", $"{Context.UserIdentifier} has disconnected");
-        //    await base.OnDisconnectedAsync(exception);          
-        //}
+        //}       
     }
 }

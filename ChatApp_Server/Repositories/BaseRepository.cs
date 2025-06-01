@@ -11,12 +11,6 @@ namespace ChatApp_Server.Repositories
     public interface IBaseRepository<TEntity, TId> where TEntity : class where TId: notnull
     {
 
-        Task<IEnumerable<TEntity>> GetAllAsync(IEnumerable<Expression<Func<TEntity, bool>>> filters = null!,
-           Func<IQueryable<TEntity>, IOrderedQueryable<TEntity>> orderBy = null!,
-           Func<IQueryable<TEntity>, IIncludableQueryable<TEntity, object?>> includes = null!,
-           int? skip = null,
-           int? take = null);
-        Task<TEntity?> GetOneAsync(IEnumerable<Expression<Func<TEntity, bool>>> filters = null!, Func<IQueryable<TEntity>, IIncludableQueryable<TEntity, object?>>? includes = null);
 
         Task<TEntity?> GetByIdAsync(TId id);
         void Insert(TEntity entity);

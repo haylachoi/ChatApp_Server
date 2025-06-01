@@ -25,7 +25,7 @@ namespace WebApplication1.Controllers
             }
             param.Avatar = avatarUrl;
             var result = await authService.Register(param);
-            return result.ToActionResult();
+            return result.ToActionResult();       
         }
         [HttpPost("login")]
         public async Task<IActionResult> Login(CredentialParam param)

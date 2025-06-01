@@ -21,14 +21,19 @@ public partial class Message
 
     public int SenderId { get; set; }
 
-    public bool IsReaded { get; set; }
-
-    public bool? IsBlocked { get; set; }
-
     public int RoomId { get; set; }
+
+    public long? QuoteId { get; set; }
+
+    [InverseProperty("Quote")]
+    public virtual ICollection<Message> InverseQuote { get; set; } = new List<Message>();
 
     [InverseProperty("Message")]
     public virtual ICollection<MessageDetail> MessageDetails { get; set; } = new List<MessageDetail>();
+
+    [ForeignKey("QuoteId")]
+    [InverseProperty("InverseQuote")]
+    public virtual Message? Quote { get; set; }
 
     [ForeignKey("RoomId")]
     [InverseProperty("Messages")]

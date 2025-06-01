@@ -34,12 +34,6 @@ namespace ChatApp_Server.Configs
                 .NewConfig()
                 .Map(dest => dest.Salt, src => MapContext.Current!.Parameters["salt"])
                 .Map(dest => dest.Password, src => src.Password.ToSHA512Hash(MapContext.Current!.Parameters["salt"] as string));
-
-
-
-            //
-           
-
         }
     }
 }

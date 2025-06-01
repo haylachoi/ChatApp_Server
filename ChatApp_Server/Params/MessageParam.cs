@@ -6,5 +6,6 @@
         public bool IsImage { get; set; }
         public int SenderId { get; set; }
         public int RoomId { get; set; }
+        public long? QuoteId { get; set; }
     }
 }

@@ -1,6 +1,10 @@
-@ChatApp_Server_HostAddress = http://localhost:5185
+@ChatApp_Server_HostAddress = http://192.168.1.12:7800
 
-GET {{ChatApp_Server_HostAddress}}/weatherforecast/
+POST {{ChatApp_Server_HostAddress}}/auth/login
 Accept: application/json
 
+{
+  email:mot@gmail.com,
+  password: "123"
+}
 ###

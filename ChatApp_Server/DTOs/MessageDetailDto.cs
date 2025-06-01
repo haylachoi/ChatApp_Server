@@ -9,9 +9,6 @@ namespace ChatApp_Server.DTOs
         public long MessageId { get; set; }
         public int RoomId { get; set; }
         public int UserId { get; set; }
-
-        public bool? IsReaded { get; set; }
-
         public int? ReactionId { get; set; }
         public ReactionDto? Reaction { get; set; }
         public UserDto User { get; set; } = null!;

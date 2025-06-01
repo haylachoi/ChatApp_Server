@@ -11,7 +11,7 @@ namespace ChatApp_Server.Controllers
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
-    public class UserController(IUserService userService, IFireBaseCloudService fireBaseCloudService, IHubContext<ClientHub> hubContext) : ControllerBase
+    public class UserController(IUserService userService, IFireBaseCloudService fireBaseCloudService) : ControllerBase
     {
         [HttpGet]
         public async Task<IActionResult> Profile()

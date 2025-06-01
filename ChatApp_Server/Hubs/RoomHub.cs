@@ -30,9 +30,7 @@ namespace ChatApp_Server.Hubs
             });
 
             if (result.IsFailed)
-            {
                 return HubResponse.Fail(result.Errors);
-            }
 
             var room = result.Value;
 
@@ -47,9 +45,7 @@ namespace ChatApp_Server.Hubs
             var userId = int.Parse(Context.UserIdentifier!);
             var result = await _groupService.LeaveGroupAsync(new MemberParam { GroupId = groupId, UserId = userId });
             if (result.IsFailed)
-            {
                 return HubResponse.Fail(result.Errors);
-            }
 
             _ = _clientContext.Clients.User(userId.ToString()).SendAsync("LeftRoom", groupId);
             _ = _clientContext.Clients.GroupExcept(groupId.ToString(), userId.ToString()).SendAsync("RemoveGroupMember", result.Value.RoomId, result.Value.UserId);
@@ -67,9 +63,8 @@ namespace ChatApp_Server.Hubs
             });
 
             if (result.IsFailed)
-            {
                 return HubResponse.Fail(result.Errors);
-            }
+
             _ = _clientContext.Clients.Group(groupId.ToString()).SendAsync("DeleteGroup", result.Value.Id);
 
             return HubResponse.Ok();
@@ -83,14 +78,13 @@ namespace ChatApp_Server.Hubs
             });
 
             if (result.IsFailed)
-            {
                 return HubResponse.Fail(result.Errors);
-            }
+
             _ = _clientContext.Clients.Group(groupId.ToString()).SendAsync("AddGroupMember", result.Value);
 
             await _connections.AddConnectionToGroup(groupId.ToString(), userId.ToString(), _clientContext);
 
-            var group = await _roomService.GetWithMembersAsync(groupId);
+            var group = await _roomService.GetIncludeMemberInfoAsync(groupId);
             if (group != null)
             {
                 _ = _clientContext.Clients.User(userId.ToString()).SendAsync("JoinRoom", group);
@@ -199,8 +193,8 @@ namespace ChatApp_Server.Hubs
                 return HubResponse.Fail("Bạn không ở trong phòng này");
             }
 
-            var pms = await _messageService.GetPreviousMessagesAsync(room.Id, messageId, numberMessages);
-            return HubResponse.Ok(pms);
+            var messages = await _messageService.GetPreviousMessagesAsync(room.Id, messageId, numberMessages);
+            return HubResponse.Ok(messages);
         }
         public async Task<HubResponse> GetNextMessages(int roomId, long messageId, int numberMessages)
         {
@@ -212,9 +206,23 @@ namespace ChatApp_Server.Hubs
                 return HubResponse.Fail("Bạn không ở trong phòng này");
 
             }
-            var pms = await _messageService.GetNextMessagesAsync(room.Id, messageId, numberMessages);
+            var messages = await _messageService.GetNextMessagesAsync(room.Id, messageId, numberMessages);
 
-            return HubResponse.Ok(pms);
+            return HubResponse.Ok(messages);
+        }
+
+        public async Task<HubResponse> GetMessagesFromTo(int roomId, long from, long to)
+        {
+            var userId = int.Parse(Context.UserIdentifier!);
+
+            var room = await _roomService.GetAsync(roomId, userId);
+            if (room == null)
+            {
+                return HubResponse.Fail("Bạn không ở trong phòng này");
+
+            }
+            var messages = await _messageService.GetFromTo(room.Id, from , to);
+            return HubResponse.Ok(messages);
         }
 
         public async Task<HubResponse> UpdateFirstUnseenMessage(long messageId)

@@ -52,13 +52,6 @@ namespace ChatApp_Server.Services
             }
         }
 
-        public async Task<IEnumerable<FriendshipDto>> GetAllAsync(int receiverId)
-        {
-           
-            var friends = await _repo.GetAllAsync([fs => fs.ReceiverId == receiverId]);
-            return friends.Adapt<IEnumerable<FriendshipDto>>();
-        }
-
         public async Task<Result> RefuseFriendRequest(int id)
         {
             try

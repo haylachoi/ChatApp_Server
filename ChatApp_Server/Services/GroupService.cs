@@ -69,7 +69,8 @@ namespace ChatApp_Server.Services
             var group = await _roomRepo.GetAsync(
                 new RoomCriteria
                 {
-                    Id = groupId
+                    Id = groupId,
+                    IncludeMemberInfo= true,
                 });
 
             return group.Adapt<RoomDto>();

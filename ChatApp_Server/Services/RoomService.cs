@@ -15,10 +15,9 @@ namespace ChatApp_Server.Services
     public interface IRoomService
     {
         Task<RoomDto?> GetAsync(int roomId, int? userId = null);
-        Task<RoomDto?> GetWithMembersAsync(int roomId, int? userId = null);
+        Task<RoomDto?> GetIncludeMemberInfoAsync(int roomId, int? userId = null);
         Task<IEnumerable<RoomDto>> GetAllAsync(int userId);
         Task<Result<RoomDto>> CreateRoomAsync(RoomParam param);
-        //Task<IEnumerable<RoomMemberInfoDto>> GetAllRoomOfMembersAsync(int roomId);
         Task<RoomMemberInfoDto> GetRoomMember(MemberParam param);     
         Task<Result<RoomMemberInfoDto>> UpdateFirstUnseenMessageAsync(long messageId, int userId);
         Task<Result> UpdateCanDisplayRoomAsync(int roomId, int userId, bool canDisplay);
@@ -29,19 +28,17 @@ namespace ChatApp_Server.Services
         {
             var criteria = new RoomCriteria { Id = roomId };
             if (userId != null)
-            {
                 criteria.MemberId = userId;
-            }
+
             var room = await _roomRepo.GetAsync(criteria);
             return room.Adapt<RoomDto>();
         }
-        public async Task<RoomDto?> GetWithMembersAsync(int roomId, int? userId = null)
+        public async Task<RoomDto?> GetIncludeMemberInfoAsync(int roomId, int? userId = null)
         {
             var criteria = RoomCriteria.CreateWithAllInclude(roomId);
             if (userId != null)
-            {
                 criteria.MemberId = userId;
-            }
+
             var room = await _roomRepo.GetAsync(criteria);
             return room.Adapt<RoomDto>();
         }
@@ -64,13 +61,6 @@ namespace ChatApp_Server.Services
             await _memberRepo.SaveAsync();
             return Result.Ok();
         });
-        
-
-        //public async Task<IEnumerable<RoomMemberInfoDto>> GetAllRoomOfMembersAsync(int userId)
-        //{
-        //    var members = await _memberRepo.GetAllAsync(new MembersCriteria { UserId = userId});
-        //    return members.Adapt<IEnumerable<RoomMemberInfoDto>>();
-        //}
 
         public async Task<Result<RoomMemberInfoDto>> UpdateFirstUnseenMessageAsync(long messageId, int userId)
          => await ExceptionHandler.HandleLazy<RoomMemberInfoDto>(async () =>

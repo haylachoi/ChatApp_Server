@@ -93,23 +93,23 @@ var app = builder.Build();
 // Configure the HTTP request pipeline.
 
 //app.UseHttpsRedirection();
-app.UseCors(opt =>
-{
-    opt.WithOrigins(@"http://localhost:3000", @"http://192.168.1.9:3000");
+//app.UseCors(opt =>
+//{
+//    opt.WithOrigins(@"http://localhost:3000", @"http://192.168.1.3:3000");
 
-    opt.AllowAnyHeader();
-    opt.AllowCredentials();
-    opt.AllowAnyMethod();
-});
+//    opt.AllowAnyHeader();
+//    opt.AllowCredentials();
+//    opt.AllowAnyMethod();
+//});
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.MapGet("/", () => "Hello World!");
+//app.MapControllers();
+//app.MapHub<ChatHub>("/hub/chat");
+//app.MapHub<UserHub>("/hub/user");
+//app.MapHub<RoomHub>("/hub/room");
+//app.MapHub<ClientHub>("/hub/client");
 
-app.MapControllers();
-app.MapHub<ChatHub>("/hub/chat");
-app.MapHub<UserHub>("/hub/user");
-app.MapHub<RoomHub>("/hub/room");
-app.MapHub<ClientHub>("/hub/client");
-
-app.UseProblemDetails();
+//app.UseProblemDetails();
 app.Run();

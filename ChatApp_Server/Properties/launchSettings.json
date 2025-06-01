@@ -12,9 +12,9 @@
     "http": {
       "commandName": "Project",
       "dotnetRunMessages": true,
-      "launchBrowser": true,
+      "launchBrowser": false,
       "launchUrl": "weatherforecast",
-      "applicationUrl": "http://localhost:5185",
+      "applicationUrl": "http://0.0.0.0:7800",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       }

@@ -20,10 +20,10 @@ public partial class MessageDto
 
     public int SenderId { get; set; }
 
-    public bool? IsBlocked { get; set; }
+    public MessageDto? Quote { get; set; }
     public int RoomId { get; set; }
 
 
-    public virtual IEnumerable<MessageDetailDto> MessageDetails { get; set; } = Enumerable.Empty<MessageDetailDto>();
+    public IEnumerable<MessageDetailDto> MessageDetails { get; set; } = Enumerable.Empty<MessageDetailDto>();
 
 }

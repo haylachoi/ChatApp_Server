@@ -11,48 +11,60 @@ namespace SignalRChat.Hubs
     [Authorize]
     public class ChatHub(
          IMessageService _messageService,
-            IUserService _userService,
-            IRoomService _roomService,
+            IUserService _userService,       
             IHubContext<ClientHub> _clientContext            
         ) : Hub
     {
-     
-        public async Task<HubResponse> SendMessage(int roomId, string message)
+        public async Task<HubResponse> SendMessage(int roomId, string content, long? quoteId)
         {
-            var userId = int.Parse(Context.UserIdentifier!);
-       
+            var userId = int.Parse(Context.UserIdentifier!);     
             var result = await _messageService.CreateMessageAsync(new MessageParam
             {
-                Content = message,
+                Content = content,
                 IsImage = false,
                 SenderId = userId,
                 RoomId = roomId,
+                QuoteId = quoteId
 
             });
-            if (result.IsFailed)
-            {
-                return HubResponse.Fail(new { error = result.Errors[0].Message });
-            }          
 
-            await _clientContext.Clients.Group(roomId.ToString()).SendAsync("ReceiveMessage", result.Value);
+            if (result.IsFailed)
+                return HubResponse.Fail(new { error = result.Errors[0].Message });
+            var message = await _messageService.GetAsync(result.Value.Id);
+            if (message == null)
+            {
+                return HubResponse.Fail("Có lỗi xảy ra");
+            }
+            await _clientContext.Clients.Group(roomId.ToString()).SendAsync("ReceiveMessage", message);
             return HubResponse.Ok();
         }
         public async Task<HubResponse> UpdateReactionMessage(long messageId, int? reactionId)
         {
             var userId = int.Parse(Context.UserIdentifier!);
         
-            var result = await _messageService.AddOrUpdateReaction(messageId, userId, reactionId);
-            if (result.IsFailed)
+            if (reactionId.HasValue)
             {
-                return HubResponse.Fail(result.Errors);
-            }
-            var md = result.Value;
-            var roomId = md.RoomId;
-            await _clientContext.Clients.Group(roomId.ToString()).SendAsync("UpdateReactionMessage", roomId, md);
+                var result = await _messageService.AddOrUpdateReactionMessage(messageId, userId, reactionId.Value);
+                if (result.IsFailed)
+                    return HubResponse.Fail(result.Errors);
 
-            return HubResponse.Ok(md);
+                var md = result.Value;
+                var roomId = md.RoomId;
+                _ = _clientContext.Clients.Group(roomId.ToString()).SendAsync("UpdateReactionMessage", roomId, md);
+            } else
+            {
+                var result = await _messageService.DeleteMessageDetail(messageId, userId);
+                if (result.IsFailed)
+                    return HubResponse.Fail(result.Errors);
+
+                var md = result.Value;
+                var roomId = md.RoomId;
+                _ = _clientContext.Clients.Group(roomId.ToString()).SendAsync("DeleteMessageDetail", roomId, md);
+            }
+
+            return HubResponse.Ok();
         }
-  
+       
         public async Task<HubResponse> CallVideo(int roomId, int receiverId, string peerId)
         {
             var userId = int.Parse(Context.UserIdentifier!);
