@@ -24,13 +24,13 @@ builder.Services.AddOptions<AppSettings>().BindConfiguration("AppSettings").Vali
 builder.Services.AddControllers();
 builder.Services.AddDbContext<ChatAppContext>(opt =>
 {
-    AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
-    opt.UseNpgsql(builder.Configuration.GetConnectionString("ChatApp"));
+  AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+  opt.UseNpgsql(builder.Configuration.GetConnectionString("ChatApp"));
 });
 builder.Services.AddProblemDetails(opt =>
 {
-    opt.ExceptionDetailsPropertyName = "Problem Detail";
-    opt.IncludeExceptionDetails = (ctx, ex) => builder.Environment.IsDevelopment() || builder.Environment.IsStaging();
+  opt.ExceptionDetailsPropertyName = "Problem Detail";
+  opt.IncludeExceptionDetails = (ctx, ex) => builder.Environment.IsDevelopment() || builder.Environment.IsStaging();
 });
 
 var firebaseProjectName = "chapapp-9d9a7";
@@ -51,36 +51,36 @@ builder.Services.AddSingleton<ConnectionMapping<string>>();
 //    }
 //}));
 builder.Services.AddSignalR().AddNewtonsoftJsonProtocol(opt =>
-{   
-    opt.PayloadSerializerSettings.NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore;
+{
+  opt.PayloadSerializerSettings.NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore;
 });
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(opt =>
     {
-        opt.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = false,
-            ValidateAudience = false,
-            ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(Constants.SECRET_KEY_BYTE),
+      opt.TokenValidationParameters = new TokenValidationParameters
+      {
+        ValidateIssuer = false,
+        ValidateAudience = false,
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(Constants.SECRET_KEY_BYTE),
 
-            ClockSkew = TimeSpan.Zero
-        };
-        opt.Events = new JwtBearerEvents
+        ClockSkew = TimeSpan.Zero
+      };
+      opt.Events = new JwtBearerEvents
+      {
+        OnMessageReceived = context =>
         {
-            OnMessageReceived = context =>
-            {
-                var accessToken = context.Request.Query["access_token"];
-                var path = context.HttpContext.Request.Path;
-                var isValidPath = path.StartsWithSegments("/hub");
-                if (!string.IsNullOrEmpty(accessToken)
-                    && isValidPath)
-                {
-                    context.Token = accessToken;
-                }
-                return Task.CompletedTask;
-            }
-        };
+          var accessToken = context.Request.Query["access_token"];
+          var path = context.HttpContext.Request.Path;
+          var isValidPath = path.StartsWithSegments("/hub");
+          if (!string.IsNullOrEmpty(accessToken)
+                  && isValidPath)
+          {
+            context.Token = accessToken;
+          }
+          return Task.CompletedTask;
+        }
+      };
     });
 //builder.Services.AddSingleton<IFirebaseAuthService, FirebaseAuthService>();
 //builder.Services.AddSingleton<IFirestoreService, FirestoreService>();
@@ -92,24 +92,27 @@ var app = builder.Build();
 
 // Configure the HTTP request pipeline.
 
-//app.UseHttpsRedirection();
-//app.UseCors(opt =>
-//{
-//    opt.WithOrigins(@"http://localhost:3000", @"http://192.168.1.3:3000");
+app.UseHttpsRedirection();
+app.UseCors(opt =>
+{
+  opt.WithOrigins(@"http://localhost:3000", @"http://192.168.1.3:3000");
 
-//    opt.AllowAnyHeader();
-//    opt.AllowCredentials();
-//    opt.AllowAnyMethod();
-//});
+  opt.AllowAnyHeader();
+  opt.AllowCredentials();
+  opt.AllowAnyMethod();
+});
 
 app.UseAuthentication();
 app.UseAuthorization();
-app.MapGet("/", () => "Hello World!");
-//app.MapControllers();
-//app.MapHub<ChatHub>("/hub/chat");
-//app.MapHub<UserHub>("/hub/user");
-//app.MapHub<RoomHub>("/hub/room");
-//app.MapHub<ClientHub>("/hub/client");
+app.MapGet("/", () =>
+{
+  return "hello";
+});
+app.MapControllers();
+app.MapHub<ChatHub>("/hub/chat");
+app.MapHub<UserHub>("/hub/user");
+app.MapHub<RoomHub>("/hub/room");
+app.MapHub<ClientHub>("/hub/client");
 
-//app.UseProblemDetails();
+app.UseProblemDetails();
 app.Run();

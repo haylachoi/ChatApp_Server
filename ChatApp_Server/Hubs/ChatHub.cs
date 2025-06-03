@@ -87,7 +87,12 @@ namespace SignalRChat.Hubs
         {
             await _clientContext.Clients.User(receiverId.ToString()).SendAsync("CancelVideoCall", peerId);
             return HubResponse.Ok();
-        }   
+        }
+        public async Task<HubResponse> FinishVideoCall(int receiverId, string peerId)
+        {
+            await _clientContext.Clients.User(receiverId.ToString()).SendAsync("FinishVideoCall", peerId);
+            return HubResponse.Ok();
+        }
     }
 
 }
