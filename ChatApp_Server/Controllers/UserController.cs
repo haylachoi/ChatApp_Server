@@ -11,7 +11,8 @@ namespace ChatApp_Server.Controllers
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
-    public class UserController(IUserService userService, IFireBaseCloudService fireBaseCloudService) : ControllerBase
+    public class UserController(IUserService userService, IImagesUploadService 
+        imagesUploadService) : ControllerBase
     {
         [HttpGet]
         public async Task<IActionResult> Profile()
@@ -33,7 +34,7 @@ namespace ChatApp_Server.Controllers
             {
                 return Unauthorized();
             }
-            var urlResult = await fireBaseCloudService.UploadFile(file.FileName, file);
+            var urlResult = await imagesUploadService.UploadFile(file.FileName, file);
             if (urlResult.IsFailed)
             {
                 return StatusCode(StatusCodes.Status500InternalServerError);

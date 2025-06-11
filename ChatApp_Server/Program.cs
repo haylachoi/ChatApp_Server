@@ -10,16 +10,16 @@ using ChatApp_Server.Models;
 using SignalRChat.Hubs;
 using ChatApp_Server.Configs;
 using ChatApp_Server.Hubs;
-using Google.Cloud.Storage.V1;
 using Microsoft.Extensions.Options;
-using Microsoft.AspNetCore.SignalR;
+
+using CloudinaryDotNet;
 
 var builder = WebApplication.CreateBuilder(args);
 
-Environment.SetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS", @"./firestore_credential.json");
 Constants.Initialize(builder.Configuration);
 
 builder.Services.AddOptions<AppSettings>().BindConfiguration("AppSettings").ValidateDataAnnotations().ValidateOnStart();
+builder.Services.AddOptions<CloudinarySettings>().BindConfiguration("CloudinarySettings").ValidateDataAnnotations().ValidateOnStart();
 // Add services to the container.
 builder.Services.AddControllers();
 builder.Services.AddDbContext<ChatAppContext>(opt =>
@@ -33,23 +33,15 @@ builder.Services.AddProblemDetails(opt =>
   opt.IncludeExceptionDetails = (ctx, ex) => builder.Environment.IsDevelopment() || builder.Environment.IsStaging();
 });
 
-var firebaseProjectName = "chapapp-9d9a7";
-builder.Services.AddSingleton(FirebaseApp.Create());
-builder.Services.AddSingleton(FirestoreDb.Create(firebaseProjectName));
-builder.Services.AddSingleton(StorageClient.Create());
+builder.Services.AddSingleton(service =>
+{
+    var settings = service.GetRequiredService<IOptions<CloudinarySettings>>().Value;
+    var account = new Account(settings.CloudName, settings.ApiKey, settings.ApiSecret);
+    return new Cloudinary(account);
+});
 builder.Services.AddSingleton(service => service.GetRequiredService<IOptions<AppSettings>>().Value);
 builder.Services.AddSingleton<ConnectionMapping<string>>();
 
-//builder.Services.AddSingleton(new FirebaseAuthClient(new FirebaseAuthConfig
-//{
-//    ApiKey = "AIzaSyDc8JqhrToDLv-8H8aQFdaZo2PqRiuwyug",
-//    AuthDomain = $"{firebaseProjectName}.firebaseapp.com",
-//    Providers = new FirebaseAuthProvider[]
-//    {
-//        new EmailProvider(),
-//        new GoogleProvider()
-//    }
-//}));
 builder.Services.AddSignalR().AddNewtonsoftJsonProtocol(opt =>
 {
   opt.PayloadSerializerSettings.NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore;
@@ -82,8 +74,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         }
       };
     });
-//builder.Services.AddSingleton<IFirebaseAuthService, FirebaseAuthService>();
-//builder.Services.AddSingleton<IFirestoreService, FirestoreService>();
+
 builder.Services.RegisterMapsterConfiguration();
 builder.Services.RegisterAppService("ChatApp_Server.Repositories");
 builder.Services.RegisterAppService("ChatApp_Server.Services");
@@ -104,10 +95,7 @@ app.UseCors(opt =>
 
 app.UseAuthentication();
 app.UseAuthorization();
-app.MapGet("/", () =>
-{
-  return "hello";
-});
+
 app.MapControllers();
 app.MapHub<ChatHub>("/hub/chat");
 app.MapHub<UserHub>("/hub/user");

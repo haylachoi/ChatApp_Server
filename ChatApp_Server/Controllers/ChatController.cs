@@ -15,7 +15,7 @@ namespace ChatApp_Server.Controllers
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
-    public class ChatController(IFireBaseCloudService fireBaseCloudService, 
+    public class ChatController(IImagesUploadService imagesUploadService, 
         IRoomService roomService,
         IMessageService messageService, 
         IHubContext<ClientHub> hubContext) : ControllerBase
@@ -37,7 +37,7 @@ namespace ChatApp_Server.Controllers
             var uploadQueue = new Queue<Task<Result<string>>>();
             foreach (var file in files)
             {          
-                uploadQueue.Enqueue(fireBaseCloudService.UploadFile(file.Name, file));
+                uploadQueue.Enqueue(imagesUploadService.UploadFile(file.Name, file));
             }
                      
 

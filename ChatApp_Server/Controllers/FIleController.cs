@@ -10,13 +10,14 @@ namespace ChatApp_Server.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class FIleController(IFireBaseCloudService fireBaseCloudService) : ControllerBase
+    public class FIleController(IImagesUploadService imagesUploadService) : ControllerBase
     {
         [HttpPost()]
         [Consumes(MediaTypeNames.Multipart.FormData)]
         public async Task<IActionResult> UploadFile([FromForm] IFormFile file)
         {
-            var result = await fireBaseCloudService.UploadFile(file.FileName, file);
+            //var result = await fireBaseCloudService.UploadFile(file.FileName, file);
+            var result = await imagesUploadService.UploadFile(file.FileName, file);
             if (result.IsFailed)
             {
                 var problemDetails = new ProblemDetails

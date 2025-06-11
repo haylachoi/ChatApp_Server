@@ -9,7 +9,7 @@ namespace WebApplication1.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class AuthController(IAuthService authService, IFireBaseCloudService fireBaseCloudService): ControllerBase
+    public class AuthController(IAuthService authService, IImagesUploadService imagesUploadService): ControllerBase
     {
         [HttpPost("register")]
         public async Task<IActionResult> Register(UserParam param)
@@ -17,7 +17,7 @@ namespace WebApplication1.Controllers
             string? avatarUrl = null;
             if (param.File != null)
             {
-                var urlResult = await fireBaseCloudService.UploadFile(param.File.FileName, param.File);
+                var urlResult = await imagesUploadService.UploadFile(param.File.FileName, param.File);
                 if (urlResult != null)
                 {
                     avatarUrl = urlResult.Value;
