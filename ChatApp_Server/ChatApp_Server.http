@@ -1,4 +1,4 @@
-@ChatApp_Server_HostAddress = http://192.168.1.3:7800
+@ChatApp_Server_HostAddress = http://localhost:7800
 
 POST {{ChatApp_Server_HostAddress}}/api/auth/login
 Accept: application/json

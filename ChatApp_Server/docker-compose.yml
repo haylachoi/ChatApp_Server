@@ -1,0 +1,33 @@
+# Please refer https://aka.ms/HTTPSinContainer on how to setup an https developer certificate for your ASP.NET Core service.
+services:
+  chatappserver:
+    image: chat-server
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    ports:
+      - 7800:7800
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+
+      # Connection string
+      ConnectionStrings__ChatApp: Server=db;Database=ChatApp;Port=5432;Username=postgres;Password=postgres
+
+      # App settings
+      AppSettings__SecretKey: sdjoUOMNBYSDTxcvtygkdfBDIUSlmgsdmgodfigioJONAQofihahmboaiwyrwqafmaBD
+
+      # Cloudinary
+      CloudinarySettings__CloudName: dpfmfqbc7
+      CloudinarySettings__ApiKey: 438875398528887
+      CloudinarySettings__ApiSecret: O8knE0hIkT9yvn-EuUhTVHL4Fhw
+
+  db:
+    image: postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ChatApp
+    ports:
+      - 5432:5432
+    volumes:
+      - ./Scripts/chatapp.sql:/docker-entrypoint-initdb.d/chatapp.sql
